@@ -1189,35 +1189,53 @@
         let lastMeasuredSpeed = null;
         const API_BASE = 'https://video-to-audio-2-without-implement-db.onrender.com';
 
-        // Real speed test using our backend API (runs at page load for accuracy)
+        // Real speed test using Cloudflare CDN (runs at page load for accuracy)
         async function realSpeedTest() {
             const bars = document.getElementById('networkBars');
             const text = document.getElementById('networkSpeed');
             text.textContent = 'Testing...';
 
             try {
-                // Download 100KB from our backend to measure actual speed
-                const testUrl = `${API_BASE}/api/speed-test/download?bytes=100000`;
-                const startTime = performance.now();
+                // Try Cloudflare's speed test CDN first (no bandwidth cap, CORS-enabled)
+                let testUrl = `https://speed.cloudflare.com/__down?measId=${Date.now()}&bytes=500000`;
+                let startTime = performance.now();
 
-                const response = await fetch(testUrl, { cache: 'no-store' });
-                const data = await response.arrayBuffer();
+                let response = await fetch(testUrl, { cache: 'no-store' });
+                let data = await response.arrayBuffer();
 
-                const endTime = performance.now();
-                const durationSec = (endTime - startTime) / 1000;
-                const fileSizeBits = data.byteLength * 8;
-                const speedMbps = (fileSizeBits / durationSec) / 1000000;
+                let endTime = performance.now();
+                let durationSec = (endTime - startTime) / 1000;
+                let fileSizeBits = data.byteLength * 8;
+                let speedMbps = (fileSizeBits / durationSec) / 1000000;
 
                 lastMeasuredSpeed = speedMbps;
                 updateNetworkDisplay(speedMbps, bars, text);
+                console.log(`🌐 Speed test (Cloudflare): ${speedMbps.toFixed(1)} Mbps`);
 
                 // Report speed to backend for analytics (fire and forget)
                 reportSpeedTest(speedMbps, networkQuality);
 
             } catch (e) {
-                console.log('Backend speed test failed, using Navigator API');
-                // Fallback to Navigator API
-                checkNetwork();
+                console.log('Cloudflare speed test failed, trying backend...');
+                try {
+                    // Fallback: Use our backend
+                    const testUrl = `${API_BASE}/api/speed-test/download?bytes=500000`;
+                    const startTime = performance.now();
+                    const response = await fetch(testUrl, { cache: 'no-store' });
+                    const data = await response.arrayBuffer();
+                    const endTime = performance.now();
+                    const durationSec = (endTime - startTime) / 1000;
+                    const fileSizeBits = data.byteLength * 8;
+                    const speedMbps = (fileSizeBits / durationSec) / 1000000;
+
+                    lastMeasuredSpeed = speedMbps;
+                    updateNetworkDisplay(speedMbps, bars, text);
+                    console.log(`🌐 Speed test (Backend): ${speedMbps.toFixed(1)} Mbps`);
+                    reportSpeedTest(speedMbps, networkQuality);
+                } catch (e2) {
+                    console.log('All speed tests failed, using Navigator API');
+                    checkNetwork();
+                }
             }
         }
 
@@ -1421,7 +1439,7 @@
         class NetworkMonitor {
             constructor() {
                 this.isRunning = false;
-                this.checkInterval = 3000; // 3 seconds
+                this.checkInterval = 7000; // 7 seconds
                 this.timer = null;
             }
 
@@ -1429,7 +1447,7 @@
                 if (this.isRunning) return;
                 this.isRunning = true;
                 this.loop();
-                Logger.log('info', '📡 Network Monitor Started (Hybrid 3s)');
+                Logger.log('info', '📡 Network Monitor Started (Hybrid 7s)');
             }
 
             stop() {
@@ -1449,10 +1467,14 @@
             }
 
             async checkConnectivity() {
-                // 1. Primary Check: Navigator API (Instant, No Overhead)
+                // 1. Use last real speed test result if available (accurate, no cap)
+                if (lastMeasuredSpeed !== null) {
+                    return { online: true, source: 'measured', speed: lastMeasuredSpeed, latency: 50 };
+                }
+
+                // 2. Fallback: Navigator API (capped at ~10 Mbps but instant)
                 if (navigator.connection && navigator.connection.downlink) {
-                    const downlink = navigator.connection.downlink; // Mbps
-                    // If browser gives valid data, trust it
+                    const downlink = navigator.connection.downlink;
                     if (downlink > 0) {
                         return { online: true, source: 'navigator', speed: downlink, latency: 50 };
                     }
