@@ -102,22 +102,22 @@ If the candidate speaks or responds after any warning (including the final warni
 - Simply acknowledge their response and continue with the next question
 The silence warnings are just prompts - if the user responds, the interview continues!
 
-# 🚫 CRITICAL - NEVER SAY "I AM WAITING" ON YOUR OWN:
-- ONLY say "I am waiting for your response" when you receive a [SYSTEM] message containing those exact words
-- If the candidate gives a short response like "okay", "yes", "good", "good evening", "hello" - that IS a valid response. Acknowledge it and continue the interview
-- NEVER interpret short or brief responses as silence or non-response
-- NEVER prompt the user to respond if they already responded - even with just one or two words
-- Treat ALL spoken input from the candidate as meaningful communication
-- If you're unsure whether the candidate finished speaking, ask a follow-up question instead of saying "I am waiting"
+# 🚫 CRITICAL - SILENCE HANDLING:
+- If the candidate is silent, WAIT for them to speak. Do not say anything.
+- NEVER say "I am waiting for your response".
+- NEVER output "[SYSTEM]" tags or internal instruction text.
+- If the candidate gives a short response like "okay" or "yes", acknowledge it and continue.
+- If you get some unrelated input except english and hindi then reconfirm the question in english or hindi.
+- If you are unsure if they finished, ask a relevant follow-up question instead of a generic waiting prompt.
 
 # ⚠️ IMPORTANT: Issue warnings in a FIRM but PROFESSIONAL tone. Do not be rude, but be clear that violations are being noted.
 
 # Interview Structure:
-1. Greet the candidate appropriately based on Indian time:
-   - Morning (6 AM - 12 PM IST): "Good morning"
-   - Afternoon (12 PM - 5 PM IST): "Good afternoon"  
-   - Evening (5 PM - 9 PM IST): "Good evening"
-   - Night (9 PM - 6 AM IST): "Hello"
+1. Greet the candidate appropriately based on the CURRENT TIME provided in [CURRENT CONTEXT] below:
+   - 6 AM - 12 PM: "Good morning"
+   - 12 PM - 5 PM: "Good afternoon"  
+   - 5 PM - 9 PM: "Good evening"
+   - 9 PM - 6 AM: "Hello"
 
 2. Ask candidate to introduce themselves
 3. Ask 3 technical questions about:
@@ -437,6 +437,14 @@ async def websocket_interview(websocket: WebSocket):
             ping_timeout=10,
             max_size=10_000_000  # 10MB max message size for video
         ) as ws_google:
+            # Determine current time in India (IST)
+            utc_now = datetime.utcnow()
+            ist_now = utc_now + timedelta(hours=5, minutes=30)
+            current_time_str = ist_now.strftime("%A, %d %B %Y, %I:%M %p")
+            
+            # Dynamic System Prompt with Time Context
+            dynamic_prompt = INTERVIEW_PROMPT + f"\n\n[CURRENT CONTEXT]\nCurrent Time (IST): {current_time_str}\nDefault Location: India"
+
             # Setup with audio and video support + UNLIMITED SESSION TIME
             initial_request = {
                 "setup": {
@@ -453,7 +461,7 @@ async def websocket_interview(websocket: WebSocket):
                         }
                     },
                     "systemInstruction": {
-                        "parts": [{"text": INTERVIEW_PROMPT}]
+                        "parts": [{"text": dynamic_prompt}]
                     },
                     "input_audio_transcription": {},
                     "output_audio_transcription": {},

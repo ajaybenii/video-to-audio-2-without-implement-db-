@@ -680,7 +680,7 @@
         .message {
             padding: 12px 16px;
             border-radius: 16px;
-            font-size: 13px;
+            font-size: 20px;
             line-height: 1.6;
             animation: fadeInMessage 0.3s ease-out;
             max-width: 90%;
@@ -747,9 +747,18 @@
 
         /* Controls */
         .controls {
+            display: none;
+        }
+
+        .panel-footer {
             display: flex;
             justify-content: center;
-            gap: 14px;
+            padding-top: 12px;
+            margin-top: auto;
+        }
+
+        .panel-footer .btn {
+            width: 100%;
         }
 
         .btn {
@@ -835,8 +844,7 @@
             }
 
             .controls {
-                width: 100%;
-                justify-content: center;
+                display: none;
             }
         }
 
@@ -870,7 +878,7 @@
             }
 
             .controls {
-                flex-wrap: wrap;
+                display: none;
             }
 
             .btn {
@@ -884,7 +892,7 @@
 
             .message {
                 padding: 10px 14px;
-                font-size: 13px;
+                font-size: 14px;
             }
         }
 
@@ -965,7 +973,7 @@
             }
 
             .controls {
-                gap: 8px;
+                display: none;
             }
 
             .theme-toggle {
@@ -1079,6 +1087,9 @@
                             onclick="toggleMic()">mic</button>
                     </div>
                 </div>
+                <div class="panel-footer">
+                    <button class="btn btn-primary" id="startBtn" onclick="startInterview()">▶️ Start Interview</button>
+                </div>
             </div>
 
             <div class="glass ai-orb-panel">
@@ -1103,12 +1114,11 @@
                         <div>Click "Start Interview" to begin</div>
                     </div>
                 </div>
+                <div class="panel-footer">
+                    <button class="btn btn-secondary" id="stopBtn" onclick="stopInterview()" disabled>⏹️ End
+                        Interview</button>
+                </div>
             </div>
-        </div>
-
-        <div class="controls">
-            <button class="btn btn-primary" id="startBtn" onclick="startInterview()">▶️ Start Interview</button>
-            <button class="btn btn-secondary" id="stopBtn" onclick="stopInterview()" disabled>⏹️ End Interview</button>
         </div>
     </div>
 
@@ -1520,8 +1530,8 @@ registerProcessor('pcm-processor', PCMProcessor);
                     isRecordingAudio = true;
                     console.log('Audio recording started successfully');
                 } catch (startError) {
-                    console.error('MediaRecorder.start() failed:', startError);
-                    Logger.log('error', 'MediaRecorder.start failed, retrying without mimeType', { error: startError.message });
+                    console.warn('MediaRecorder.start() failed, retrying with default settings:', startError);
+                    Logger.log('warn', 'MediaRecorder.start failed, retrying without mimeType', { error: startError.message });
 
                     // Retry without options
                     try {
@@ -2055,9 +2065,16 @@ registerProcessor('pcm-processor', PCMProcessor);
                     const bytes = new Uint8Array(e.data);
                     let binary = '';
                     for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+
+                    // Use actual sample rate to prevent speed/pitch issues
+                    if (!window.hasLoggedSampleRate) {
+                        console.log(`🎙️ Sending audio at sample rate: ${audioContext.sampleRate}Hz`);
+                        window.hasLoggedSampleRate = true;
+                    }
+
                     ws.send(JSON.stringify({
                         realtimeInput: {
-                            mediaChunks: [{ mimeType: `audio/pcm;rate=${SAMPLE_RATE}`, data: btoa(binary) }]
+                            mediaChunks: [{ mimeType: `audio/pcm;rate=${audioContext.sampleRate}`, data: btoa(binary) }]
                         }
                     }));
                 };
