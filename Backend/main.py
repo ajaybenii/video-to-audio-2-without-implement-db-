@@ -271,21 +271,109 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-async def relay_messages(ws_client: WebSocket, ws_google):
-    """Handle bidirectional message relay between client and Gemini"""
+async def relay_messages(ws_client: WebSocket, ws_google, access_token: str, dynamic_prompt: str):
+    """Handle bidirectional message relay between client and Gemini with auto-reconnection"""
+    
+    # Mutable container so both coroutines can see connection swaps
+    gemini = {"ws": ws_google, "swapping": False}
     
     # Store session resumption handle
     session_handle = None
     
-    async def client2server(source: WebSocket, target):
+    async def reconnect_gemini():
+        """Reconnect to Gemini using session resumption handle"""
+        nonlocal session_handle
+        
+        if not session_handle:
+            logger.warning("No session handle available for reconnection")
+            return None
+        
+        logger.info(f"🔄 Reconnecting to Gemini with session handle...")
+        
+        try:
+            # Get fresh token
+            fresh_token = await manager.get_cached_token()
+            if not fresh_token:
+                logger.error("Failed to get fresh token for reconnection")
+                return None
+            
+            new_ws = await connect(
+                HOST,
+                extra_headers={'Authorization': f'Bearer {fresh_token}'},
+                ping_interval=20,
+                ping_timeout=10,
+                max_size=10_000_000
+            )
+            
+            # Send setup WITH session resumption handle to continue conversation
+            reconnect_request = {
+                "setup": {
+                    "model": MODEL,
+                    "generationConfig": {
+                        "temperature": 0.7,
+                        "responseModalities": ["AUDIO"],
+                        "speechConfig": {
+                            "voiceConfig": {
+                                "prebuiltVoiceConfig": {
+                                    "voiceName": "Aoede"
+                                }
+                            }
+                        }
+                    },
+                    "systemInstruction": {
+                        "parts": [{"text": dynamic_prompt}]
+                    },
+                    "input_audio_transcription": {},
+                    "output_audio_transcription": {},
+                    "context_window_compression": {
+                        "sliding_window": {},
+                        "trigger_tokens": 50000
+                    },
+                    "session_resumption": {
+                        "handle": session_handle  # Resume from saved handle
+                    }
+                }
+            }
+            
+            await new_ws.send(json.dumps(reconnect_request))
+            
+            # Wait for setupComplete from new connection
+            setup_response = await asyncio.wait_for(new_ws.recv(), timeout=10)
+            setup_data = json.loads(setup_response.decode('utf-8'))
+            
+            if 'setupComplete' in setup_data:
+                logger.info("✅ Gemini session resumed successfully!")
+                
+                # Update session handle if provided in setupComplete
+                if 'sessionResumptionUpdate' in setup_data:
+                    update = setup_data['sessionResumptionUpdate']
+                    if update.get('newHandle'):
+                        session_handle = update['newHandle']
+                        logger.debug("Session handle updated from setupComplete")
+                
+                return new_ws
+            else:
+                logger.warning(f"Unexpected setup response: {list(setup_data.keys())}")
+                await new_ws.close()
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Reconnection failed: {e}")
+            return None
+    
+    async def client2server():
         """Browser → Gemini (audio + video)"""
         msg_count = 0
         audio_chunk_count = 0
         try:
             while True:
-                message = await source.receive_text()
+                message = await ws_client.receive_text()
                 msg_count += 1
                 data = json.loads(message)
+                
+                # Skip sending during connection swap
+                if gemini["swapping"]:
+                    continue
                 
                 # Logging (only in debug mode)
                 if 'realtimeInput' in data:
@@ -295,66 +383,105 @@ async def relay_messages(ws_client: WebSocket, ws_google):
                 else:
                     logger.debug(f"Browser→Gemini message #{msg_count}")
                 
-                await target.send(message)
+                try:
+                    await gemini["ws"].send(message)
+                except Exception as e:
+                    logger.warning(f"Send to Gemini failed (may be swapping): {e}")
         except WebSocketDisconnect:
             logger.debug("Client disconnected from relay")
         except Exception as e:
             logger.error(f"Error client2server: {e}")
     
-    async def server2client(source, target: WebSocket):
-        """Gemini → Browser"""
+    async def server2client():
+        """Gemini → Browser with auto-reconnection on goAway"""
         nonlocal session_handle
         msg_count = 0
-        try:
-            async for message in source:
-                msg_count += 1
-                data = json.loads(message.decode('utf-8'))
-                
-                # Handle session resumption updates
-                if 'sessionResumptionUpdate' in data:
-                    update = data['sessionResumptionUpdate']
-                    if update.get('resumable') and update.get('newHandle'):
-                        session_handle = update['newHandle']
-                        logger.debug("Session resumption handle updated")
-                
-                # Handle GoAway message (connection will terminate soon)
-                if 'goAway' in data:
-                    time_left = data['goAway'].get('timeLeft', 'unknown')
-                    logger.warning(f"Connection will close in {time_left}. Resumption handle available: {bool(session_handle)}")
-                
-                # Detailed logging in debug mode
-                if 'serverContent' in data:
-                    content = data['serverContent']
+        
+        while True:
+            try:
+                current_ws = gemini["ws"]
+                async for message in current_ws:
+                    msg_count += 1
+                    data = json.loads(message.decode('utf-8'))
                     
-                    if 'modelTurn' in content:
-                        logger.debug("AI Speaking")
+                    # Handle session resumption updates
+                    if 'sessionResumptionUpdate' in data:
+                        update = data['sessionResumptionUpdate']
+                        if update.get('resumable') and update.get('newHandle'):
+                            session_handle = update['newHandle']
+                            logger.debug("Session resumption handle updated")
                     
-                    if 'outputTranscription' in content:
-                        text = content['outputTranscription'].get('text', '')
-                        logger.debug(f"AI said: {text}")
+                    # Handle GoAway message — trigger reconnection
+                    if 'goAway' in data:
+                        time_left = data['goAway'].get('timeLeft', 'unknown')
+                        logger.warning(f"⚠️ GoAway received! Connection closing in {time_left}. Reconnecting...")
+                        
+                        # Mark as swapping to pause client2server sends
+                        gemini["swapping"] = True
+                        
+                        # Reconnect using session handle
+                        new_ws = await reconnect_gemini()
+                        
+                        if new_ws:
+                            old_ws = gemini["ws"]
+                            gemini["ws"] = new_ws
+                            gemini["swapping"] = False
+                            
+                            # Close old connection gracefully
+                            try:
+                                await old_ws.close()
+                            except Exception:
+                                pass
+                            
+                            logger.info("🔄 Connection swapped. Continuing conversation...")
+                            break  # Break inner loop to restart with new connection
+                        else:
+                            gemini["swapping"] = False
+                            logger.error("Reconnection failed. Continuing with current connection...")
+                        
+                        # Don't forward goAway to frontend
+                        continue
                     
-                    if 'inputTranscription' in content:
-                        text = content['inputTranscription'].get('text', '')
-                        is_final = content['inputTranscription'].get('isFinal', False)
-                        if is_final:
-                            logger.debug(f"User said: {text}")
+                    # Forward all other messages to frontend
+                    if 'serverContent' in data:
+                        content = data['serverContent']
+                        
+                        if 'modelTurn' in content:
+                            logger.debug("AI Speaking")
+                        
+                        if 'outputTranscription' in content:
+                            text = content['outputTranscription'].get('text', '')
+                            logger.debug(f"AI said: {text}")
+                        
+                        if 'inputTranscription' in content:
+                            text = content['inputTranscription'].get('text', '')
+                            is_final = content['inputTranscription'].get('isFinal', False)
+                            if is_final:
+                                logger.debug(f"User said: {text}")
+                        
+                        if 'generationComplete' in content:
+                            logger.debug("Generation complete")
                     
-                    if 'generationComplete' in content:
-                        logger.debug("Generation complete")
+                    elif 'setupComplete' in data:
+                        logger.debug("Setup complete")
+                    
+                    await ws_client.send_text(message.decode('utf-8'))
+                    
+            except Exception as e:
+                # If we're swapping, this is expected — wait and retry
+                if gemini["swapping"]:
+                    await asyncio.sleep(0.1)
+                    continue
                 
-                elif 'setupComplete' in data:
-                    logger.debug("Setup complete")
-                
-                await target.send_text(message.decode('utf-8'))
-        except Exception as e:
-            logger.error(f"Error server2client: {e}")
-    
+                logger.error(f"Error server2client: {e}")
+                break  # Exit on real errors
+        
     # Set timeout for the entire connection
     try:
         await asyncio.wait_for(
             asyncio.gather(
-                client2server(ws_client, ws_google),
-                server2client(ws_google, ws_client),
+                client2server(),
+                server2client(),
                 return_exceptions=True
             ),
             timeout=CONNECTION_TIMEOUT
@@ -480,7 +607,7 @@ async def websocket_interview(websocket: WebSocket):
             
             logger.debug(f"Client #{connection_id} - AI initialized with video and transcription")
             
-            await relay_messages(websocket, ws_google)
+            await relay_messages(websocket, ws_google, access_token, dynamic_prompt)
             
     except WebSocketDisconnect:
         logger.info(f"Client #{connection_id} disconnected")

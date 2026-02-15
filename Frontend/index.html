@@ -1434,12 +1434,12 @@
         }
 
         // ═══════════════════════════════════════════════════
-        // HYBRID NETWORK MONITOR (3s Heartbeat)
+        // HYBRID NETWORK MONITOR (15s Live Speed Update)
         // ═══════════════════════════════════════════════════
         class NetworkMonitor {
             constructor() {
                 this.isRunning = false;
-                this.checkInterval = 7000; // 7 seconds
+                this.checkInterval = 15000; // 15 seconds
                 this.timer = null;
             }
 
@@ -1447,7 +1447,7 @@
                 if (this.isRunning) return;
                 this.isRunning = true;
                 this.loop();
-                Logger.log('info', '📡 Network Monitor Started (Hybrid 7s)');
+                Logger.log('info', '📡 Network Monitor Started (Live 15s)');
             }
 
             stop() {
@@ -1467,36 +1467,51 @@
             }
 
             async checkConnectivity() {
-                // 1. Use last real speed test result if available (accurate, no cap)
-                if (lastMeasuredSpeed !== null) {
-                    return { online: true, source: 'measured', speed: lastMeasuredSpeed, latency: 50 };
+                // 1. Instant Offline Check
+                if (!navigator.onLine) {
+                    return { online: false, source: 'navigator', speed: 0, latency: 0 };
                 }
 
-                // 2. Fallback: Navigator API (capped at ~10 Mbps but instant)
-                if (navigator.connection && navigator.connection.downlink) {
-                    const downlink = navigator.connection.downlink;
-                    if (downlink > 0) {
-                        return { online: true, source: 'navigator', speed: downlink, latency: 50 };
-                    }
-                }
-
-                // 2. Secondary Check: Backend Ping (Fallback)
-                const start = Date.now();
+                // 2. Mini Speed Test (50KB) - Live Update
                 try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+                    // Try Cloudflare first (50KB)
+                    const testUrl = `https://speed.cloudflare.com/__down?measId=${Date.now()}&bytes=50000`;
+                    const start = performance.now();
 
-                    await fetch(`${API_BASE}/api/network-info`, {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
+                    const response = await fetch(testUrl, {
                         signal: controller.signal,
                         cache: 'no-store'
                     });
+                    const data = await response.arrayBuffer();
                     clearTimeout(timeoutId);
 
-                    return { online: true, source: 'backend', speed: null, latency: Date.now() - start };
+                    const end = performance.now();
+                    const durationSec = (end - start) / 1000;
+                    const speedMbps = (data.byteLength * 8) / durationSec / 1000000;
+
+                    // Update global speed var
+                    lastMeasuredSpeed = speedMbps;
+
+                    return {
+                        online: true,
+                        source: 'live-test',
+                        speed: speedMbps,
+                        latency: (end - start)
+                    };
 
                 } catch (e) {
-                    Logger.log('warn', 'Network check failed', { error: e.message });
-                    return { online: false, source: 'none', speed: 0, latency: 0 };
+                    // Fallback to Backend Ping if Cloudflare fails
+                    console.log('Live speed test failed, trying backend ping...', e);
+                    try {
+                        const start = Date.now();
+                        await fetch(`${API_BASE}/api/network-info`, { cache: 'no-store' });
+                        return { online: true, source: 'backend-ping', speed: lastMeasuredSpeed || 0, latency: Date.now() - start };
+                    } catch (e2) {
+                        return { online: false, source: 'none', speed: 0, latency: 0 };
+                    }
                 }
             }
 
