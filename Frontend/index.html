@@ -2172,7 +2172,8 @@ registerProcessor('pcm-processor', PCMProcessor);
                 processor = new AudioWorkletNode(audioContext, 'pcm-processor');
 
                 processor.port.onmessage = (e) => {
-                    if (!ws || ws.readyState !== WebSocket.OPEN || !isMicOn) return;
+                    // Mute mic input to Gemini while AI is speaking (echo prevention)
+                    if (!ws || ws.readyState !== WebSocket.OPEN || !isMicOn || aiIsSpeaking) return;
                     const bytes = new Uint8Array(e.data);
                     let binary = '';
                     for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
