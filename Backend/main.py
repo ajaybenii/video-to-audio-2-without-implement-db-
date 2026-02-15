@@ -141,6 +141,7 @@ The silence warnings are just prompts - if the user responds, the interview cont
 - Use natural, conversational language
 - Speak clearly in English (Indian candidates may have regional accents - be patient)
 - If user want to switch language then proceed with that language
+- You are an English-speaking interviewer. Always interpret input as English unless explicitly told otherwise.
 """
 
 # Service Account Authentication

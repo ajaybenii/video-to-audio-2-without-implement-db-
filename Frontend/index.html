@@ -148,6 +148,17 @@
                 linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
         }
 
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            /* Behind container (1) but above body bg */
+            pointer-events: none;
+        }
+
         .container {
             position: relative;
             z-index: 1;
@@ -1041,6 +1052,7 @@
 
 <body>
     <div class="grid-bg"></div>
+    <canvas id="bgCanvas"></canvas>
 
     <div class="container">
         <div class="header">
@@ -1156,6 +1168,11 @@
             body.dataset.theme = isLight ? '' : 'light';
             btn.textContent = isLight ? 'dark_mode' : 'light_mode';
             localStorage.setItem('theme', body.dataset.theme);
+
+            // Update particles for new theme - animation star
+            if (window.particleSystem) {
+                window.particleSystem.updateTheme();
+            }
         }
 
         // Load saved theme
@@ -1282,6 +1299,99 @@
         // ═══════════════════════════════════════════════════
         // CENTRALIZED LOGGING
         // ═══════════════════════════════════════════════════
+        // Initialize Particle System
+        window.addEventListener('load', () => {
+            window.particleSystem = new ParticleSystem();
+        });
+
+        class ParticleSystem {
+            constructor() {
+                this.canvas = document.getElementById('bgCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.particles = [];
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.animate();
+            }
+
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.initParticles();
+            }
+
+            initParticles() {
+                this.particles = [];
+                const isLight = document.body.dataset.theme === 'light';
+                const count = isLight ? 60 : 100; // Fewer particles for day mode
+                for (let i = 0; i < count; i++) {
+                    this.particles.push(new Particle(this.canvas, isLight));
+                }
+            }
+
+            updateTheme() {
+                this.initParticles();
+            }
+
+            animate() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.particles.forEach(p => {
+                    p.update();
+                    p.draw(this.ctx);
+                });
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        class Particle {
+            constructor(canvas, isLight) {
+                this.canvas = canvas;
+                this.isLight = isLight;
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * this.canvas.width;
+                this.y = Math.random() * this.canvas.height;
+                this.size = Math.random() * (this.isLight ? 4 : 2) + 0.5; // Bigger soft circles for day
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.opacity = Math.random() * 0.5 + 0.2;
+
+                // Colors
+                if (this.isLight) {
+                    // Day: Blue/Cyan/White soft mix
+                    const colors = ['rgba(59, 130, 246, ', 'rgba(14, 165, 233, ', 'rgba(255, 255, 255, '];
+                    this.colorPrefix = colors[Math.floor(Math.random() * colors.length)];
+                    this.speedY = Math.random() * -0.5 - 0.2; // Float up slightly
+                } else {
+                    // Night: White stars
+                    this.colorPrefix = 'rgba(255, 255, 255, ';
+                }
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                if (this.x < 0 || this.x > this.canvas.width || this.y < 0 || this.y > this.canvas.height) {
+                    this.reset();
+                }
+
+                // Twinkle effect
+                this.opacity += (Math.random() - 0.5) * 0.02;
+                if (this.opacity < 0.1) this.opacity = 0.1;
+                if (this.opacity > 0.8) this.opacity = 0.8;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = this.colorPrefix + this.opacity + ')';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
         class Logger {
             static async log(level, message, context = {}) {
                 const timestamp = new Date().toISOString();
@@ -1444,7 +1554,8 @@
         let combinedChunks = [];
         let sharedMicStream = null; // Single shared mic stream for all recordings
 
-        const SAMPLE_RATE = 24000;
+        const INPUT_SAMPLE_RATE = 16000;
+        const OUTPUT_SAMPLE_RATE = 24000;
         const WS_URL = 'wss://video-to-audio-2-without-implement-db.onrender.com/ws/interview';
 
         // Helper to check supported MIME types
@@ -1864,7 +1975,7 @@ registerProcessor('pcm-processor', PCMProcessor);
 
             try {
                 // Initialize playback context and mixed audio destination FIRST
-                playbackContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
+                playbackContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: OUTPUT_SAMPLE_RATE });
                 nextPlayTime = playbackContext.currentTime;
 
                 // Create combined audio stream: AI playback + User mic
@@ -2041,7 +2152,7 @@ registerProcessor('pcm-processor', PCMProcessor);
 
 
         async function startAudioStream() {
-            audioContext = new AudioContext({ sampleRate: SAMPLE_RATE });
+            audioContext = new AudioContext({ sampleRate: INPUT_SAMPLE_RATE });
             const source = audioContext.createMediaStreamSource(sharedMicStream);
 
             // Highpass filter (unchanged)
@@ -2099,7 +2210,7 @@ registerProcessor('pcm-processor', PCMProcessor);
             const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
             const pcm = new Int16Array(bytes.buffer);
             const float32 = Float32Array.from(pcm, v => v / 32768);
-            const buf = playbackContext.createBuffer(1, float32.length, SAMPLE_RATE);
+            const buf = playbackContext.createBuffer(1, float32.length, OUTPUT_SAMPLE_RATE);
             buf.getChannelData(0).set(float32);
             if (nextPlayTime < playbackContext.currentTime) nextPlayTime = playbackContext.currentTime;
             const src = playbackContext.createBufferSource();
