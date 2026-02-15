@@ -1160,7 +1160,7 @@
         // Network Monitoring
         let networkQuality = 'good';
         let lastMeasuredSpeed = null;
-        const API_BASE = 'http://127.0.0.1:8000';
+        const API_BASE = 'https://video-to-audio-2-without-implement-db.onrender.com';
 
         // Real speed test using our backend API (runs at page load for accuracy)
         async function realSpeedTest() {
@@ -1435,7 +1435,7 @@
         let sharedMicStream = null; // Single shared mic stream for all recordings
 
         const SAMPLE_RATE = 24000;
-        const WS_URL = 'ws://127.0.0.1:8000/ws/interview';
+        const WS_URL = 'wss://video-to-audio-2-without-implement-db.onrender.com/ws/interview';
 
         // Helper to check supported MIME types
         function getSupportedMimeType(type) {
