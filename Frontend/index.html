@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Interviewer - Holographic</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
+    <style>
+        :root {
+            /* Night Mode (Default) */
+            --bg: #000000;
+            --surface: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.5);
+            --cyan: #00ffd5;
+            --purple: #bf5af2;
+            --blue: #0a84ff;
+            --green: #30d158;
+            --red: #ff453a;
+            --yellow: #ffd60a;
+        }
+
+        [data-theme="light"] {
+            --bg: linear-gradient(135deg, #e8f4fc 0%, #f0f7ff 25%, #ffffff 50%, #f5f9ff 75%, #e3f0fc 100%);
+            --surface: rgba(255, 255, 255, 0.7);
+            --border: rgba(59, 130, 246, 0.15);
+            --text: #1e3a5f;
+            --text-dim: rgba(30, 58, 95, 0.6);
+            --cyan: #0ea5e9;
+            --purple: #8b5cf6;
+            --blue: #3b82f6;
+            --green: #10b981;
+            --red: #ef4444;
+            --yellow: #f59e0b;
+        }
+
+        [data-theme="light"] body {
+            background: linear-gradient(135deg, #e8f4fc 0%, #f0f7ff 25%, #ffffff 50%, #f5f9ff 75%, #e3f0fc 100%);
+        }
+
+        [data-theme="light"] .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        [data-theme="light"] .header {
+            background: rgba(255, 255, 255, 0.8);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+        }
+
+        [data-theme="light"] .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        [data-theme="light"] .btn-secondary {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3b82f6;
+        }
+
+        /* Day mode uses same orb as dark mode - no override needed */
+
+        [data-theme="light"] .message.ai {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(14, 165, 233, 0.1) 100%);
+            border-left: 3px solid #3b82f6;
+        }
+
+        [data-theme="light"] .message.user {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+            border-left: 3px solid #10b981;
+        }
+
+        [data-theme="light"] .status-badge {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        [data-theme="light"] .network-indicator {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        [data-theme="light"] .interview-timer {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        [data-theme="light"] .video-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        [data-theme="light"] .listening-badge {
+            background: rgba(255, 255, 255, 0.95);
+            color: #1a1a1a;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="light"] .listening-badge .listening-dot {
+            background: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+        }
+
+        [data-theme="light"] .grid-bg {
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text);
+            overflow: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+
+        [data-theme="light"] .grid-bg {
+            background-image:
+                linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            padding: 20px;
+            gap: 16px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.4px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Network Indicator */
+        .network-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .network-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 16px;
+        }
+
+        .network-bar {
+            width: 4px;
+            background: var(--green);
+            border-radius: 1px;
+            transition: all 0.3s;
+        }
+
+        .network-bar:nth-child(1) {
+            height: 4px;
+        }
+
+        .network-bar:nth-child(2) {
+            height: 8px;
+        }
+
+        .network-bar:nth-child(3) {
+            height: 12px;
+        }
+
+        .network-bar:nth-child(4) {
+            height: 16px;
+        }
+
+        .network-bars.fair .network-bar:nth-child(4) {
+            background: var(--text-dim);
+        }
+
+        .network-bars.fair .network-bar:nth-child(3),
+        .network-bars.fair .network-bar:nth-child(2),
+        .network-bars.fair .network-bar:nth-child(1) {
+            background: var(--yellow);
+        }
+
+        .network-bars.poor .network-bar:nth-child(4),
+        .network-bars.poor .network-bar:nth-child(3),
+        .network-bars.poor .network-bar:nth-child(2) {
+            background: var(--text-dim);
+        }
+
+        .network-bars.poor .network-bar:nth-child(1) {
+            background: var(--red);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(0, 255, 213, 0.1);
+            border-color: var(--cyan);
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+
+        /* Interview Timer */
+        .interview-timer {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        .interview-timer.active {
+            display: flex;
+        }
+
+        .interview-timer .timer-icon {
+            color: var(--cyan);
+        }
+
+        .interview-timer.warning {
+            border-color: var(--yellow);
+            color: var(--yellow);
+        }
+
+        .interview-timer.critical {
+            border-color: var(--red);
+            color: var(--red);
+            animation: blink 1s infinite;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3a3a3c;
+            transition: all 0.3s;
+        }
+
+        .status-badge.active .status-dot {
+            background: var(--cyan);
+            box-shadow: 0 0 15px var(--cyan);
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Main Layout */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr 380px;
+            gap: 16px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .glass {
+            background: var(--surface);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .panel-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-label::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--cyan);
+        }
+
+        /* Video Panel */
+        .video-panel {
+            position: relative;
+        }
+
+        .video-container {
+            flex: 1;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #0a0a0a;
+            position: relative;
+        }
+
+        [data-theme="light"] .video-container {
+            background: #e5e5e5;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform: scaleX(-1);
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            opacity: 1;
+            /* Always visible */
+            transition: opacity 0.3s;
+        }
+
+        .video-container:hover .video-controls {
+            opacity: 1;
+        }
+
+        .video-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-btn:hover {
+            background: rgba(0, 255, 213, 0.15);
+            border-color: var(--cyan);
+        }
+
+        .video-btn.active {
+            background: rgba(255, 69, 58, 0.5);
+            border-color: var(--red);
+        }
+
+        .listening-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            padding: 6px 14px;
+            background: rgba(48, 209, 88, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(48, 209, 88, 0.3);
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--green);
+            display: none;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .listening-badge.active {
+            display: flex;
+        }
+
+        .listening-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulseGlow 1.5s infinite;
+        }
+
+        /* AI Holographic Panel */
+        .ai-orb-panel {
+            align-items: center;
+            justify-content: center;
+        }
+
+        .holo-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+        }
+
+        .ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid transparent;
+        }
+
+        .ring-1 {
+            border-color: rgba(0, 255, 213, 0.4);
+            box-shadow: 0 0 20px rgba(0, 255, 213, 0.2);
+            animation: spin 10s linear infinite;
+        }
+
+        .ring-2 {
+            inset: 20px;
+            border-color: rgba(191, 90, 242, 0.4);
+            box-shadow: 0 0 20px rgba(191, 90, 242, 0.2);
+            animation: spin 14s linear infinite reverse;
+        }
+
+        .ring-3 {
+            inset: 40px;
+            border-color: rgba(10, 132, 255, 0.4);
+            box-shadow: 0 0 20px rgba(10, 132, 255, 0.2);
+            animation: spin 8s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .ai-orb {
+            position: absolute;
+            inset: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%,
+                    rgba(0, 255, 213, 0.5),
+                    rgba(191, 90, 242, 0.4) 40%,
+                    rgba(10, 132, 255, 0.3) 70%,
+                    rgba(0, 0, 0, 0.9));
+            box-shadow:
+                0 0 60px rgba(0, 255, 213, 0.5),
+                0 0 120px rgba(191, 90, 242, 0.3),
+                inset 0 0 40px rgba(255, 255, 255, 0.1);
+            animation: idleGlow 6s ease-in-out infinite;
+        }
+
+        .ai-orb.speaking {
+            animation: speakPulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes idleGlow {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.02);
+            }
+        }
+
+        @keyframes speakPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 60px rgba(0, 255, 213, 0.5);
+            }
+
+            50% {
+                transform: scale(1.08);
+                box-shadow: 0 0 100px rgba(0, 255, 213, 0.8), 0 0 150px rgba(191, 90, 242, 0.5);
+            }
+        }
+
+        .waveform {
+            display: flex;
+            gap: 5px;
+            height: 40px;
+            align-items: flex-end;
+            opacity: 0;
+            transition: opacity 0.3s;
+            margin-top: 24px;
+        }
+
+        .waveform.active {
+            opacity: 1;
+        }
+
+        .waveform span {
+            width: 5px;
+            height: 8px;
+            background: linear-gradient(180deg, var(--cyan), var(--purple));
+            border-radius: 3px;
+            box-shadow: 0 0 8px var(--cyan);
+            animation: modernWave 1.2s ease-in-out infinite;
+        }
+
+        .waveform span:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .waveform span:nth-child(2) {
+            animation-delay: 0.15s;
+        }
+
+        .waveform span:nth-child(3) {
+            animation-delay: 0.3s;
+        }
+
+        .waveform span:nth-child(4) {
+            animation-delay: 0.45s;
+        }
+
+        .waveform span:nth-child(5) {
+            animation-delay: 0.6s;
+        }
+
+        @keyframes modernWave {
+
+            0%,
+            100% {
+                height: 8px;
+                opacity: 0.4;
+            }
+
+            50% {
+                height: 40px;
+                opacity: 1;
+            }
+        }
+
+        .listening-indicator {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: rgba(48, 209, 88, 0.1);
+            border: 1px solid rgba(48, 209, 88, 0.3);
+            border-radius: 999px;
+            font-size: 13px;
+            color: var(--green);
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .listening-indicator.active {
+            display: flex;
+        }
+
+        /* Chat Panel */
+        .chat-panel {
+            max-height: 100%;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-right: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 2px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            line-height: 1.6;
+            animation: fadeInMessage 0.3s ease-out;
+            max-width: 90%;
+        }
+
+        @keyframes fadeInMessage {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-5px);
+            }
+
+            15% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+
+            85% {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-5px);
+            }
+        }
+
+        .message.ai {
+            background: linear-gradient(135deg, rgba(0, 255, 213, 0.1), rgba(191, 90, 242, 0.1));
+            border: 1px solid rgba(0, 255, 213, 0.2);
+            align-self: flex-start;
+        }
+
+        .message.user {
+            background: rgba(48, 209, 88, 0.1);
+            border: 1px solid rgba(48, 209, 88, 0.2);
+            align-self: flex-end;
+        }
+
+        .message.typing {
+            opacity: 0.7;
+        }
+
+        .message-label {
+            font-size: 10px;
+            font-weight: 600;
+            opacity: 0.6;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: 999px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+            color: #000;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 255, 213, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* ============================================
+           RESPONSIVE DESIGN - All Screen Sizes
+           ============================================ */
+
+        /* Large Desktop (1200px+) */
+        @media (min-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr 1.2fr;
+            }
+
+            .holo-container {
+                width: 280px;
+                height: 280px;
+            }
+        }
+
+        /* Desktop (1024-1199px) */
+        @media (max-width: 1199px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            .holo-container {
+                width: 240px;
+                height: 240px;
+            }
+        }
+
+        /* Tablet Landscape / iPad (769-1024px) */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto 1fr;
+            }
+
+            .ai-orb-panel {
+                grid-column: span 2;
+            }
+
+            .holo-container {
+                width: 180px;
+                height: 180px;
+            }
+
+            .header {
+                flex-wrap: wrap;
+                gap: 10px;
+                padding: 12px 16px;
+            }
+
+            .controls {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Tablet Portrait (601-768px) */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr;
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .ai-orb-panel {
+                grid-column: span 1;
+                order: -1;
+            }
+
+            .holo-container {
+                width: 150px;
+                height: 150px;
+            }
+
+            .video-container {
+                max-height: 200px;
+            }
+
+            .header {
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+
+            .chat-panel {
+                max-height: 250px;
+            }
+
+            .message {
+                padding: 10px 14px;
+                font-size: 13px;
+            }
+        }
+
+        /* Mobile Landscape (481-600px) */
+        @media (max-width: 600px) {
+            body {
+                overflow-y: auto;
+            }
+
+            .container {
+                height: auto;
+                min-height: 100vh;
+            }
+
+            .main-content {
+                grid-template-rows: auto auto auto;
+            }
+
+            .holo-container {
+                width: 120px;
+                height: 120px;
+            }
+
+            .ring {
+                border-width: 1px;
+            }
+
+            .header {
+                padding: 10px;
+            }
+
+            .status-badge,
+            .network-indicator {
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+
+            .interview-timer {
+                font-size: 14px;
+            }
+
+            .video-btn {
+                width: 38px;
+                height: 38px;
+            }
+        }
+
+        /* Mobile Portrait (up to 480px) */
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 8px;
+                gap: 8px;
+            }
+
+            .glass {
+                padding: 12px;
+                border-radius: 16px;
+            }
+
+            .panel-label {
+                font-size: 10px;
+            }
+
+            .holo-container {
+                width: 100px;
+                height: 100px;
+            }
+
+            .ai-orb {
+                width: 50px;
+                height: 50px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                font-size: 12px;
+                gap: 4px;
+            }
+
+            .controls {
+                gap: 8px;
+            }
+
+            .theme-toggle {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+
+            .video-controls {
+                gap: 8px;
+            }
+
+            .video-btn {
+                width: 34px;
+                height: 34px;
+            }
+
+            .network-bars .bar {
+                width: 3px;
+            }
+
+            .chat-panel {
+                max-height: 180px;
+            }
+
+            .message {
+                padding: 8px 12px;
+                font-size: 12px;
+                max-width: 95%;
+            }
+        }
+
+        /* Very Small Mobile (up to 360px) */
+        @media (max-width: 360px) {
+            .header {
+                padding: 8px;
+            }
+
+            .holo-container {
+                width: 80px;
+                height: 80px;
+            }
+
+            .ai-orb {
+                width: 40px;
+                height: 40px;
+            }
+
+            .btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+
+            .interview-timer {
+                font-size: 12px;
+            }
+        }
+
+        .material-symbols-rounded {
+            font-size: 22px;
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="grid-bg"></div>
+
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>🎙️ AI Voice Interview</h1>
+            </div>
+            <div class="header-right">
+                <div class="network-indicator" id="networkIndicator">
+                    <div class="network-bars" id="networkBars">
+                        <div class="network-bar"></div>
+                        <div class="network-bar"></div>
+                        <div class="network-bar"></div>
+                        <div class="network-bar"></div>
+                    </div>
+                    <span id="networkSpeed">Checking...</span>
+                </div>
+                <button class="theme-toggle material-symbols-rounded" id="themeToggle" onclick="toggleTheme()">
+                    dark_mode
+                </button>
+                <div class="interview-timer" id="interviewTimer">
+                    <span class="timer-icon">⏱️</span>
+                    <span id="timerDisplay">30:00</span>
+                </div>
+                <div class="status-badge" id="statusBadge">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Ready to Start</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="glass video-panel">
+                <div class="panel-label">Candidate</div>
+                <div class="video-container">
+                    <video id="videoFeed" class="video-feed" autoplay playsinline muted></video>
+                    <div class="listening-badge" id="listeningBadge">
+                        <div class="listening-dot"></div>
+                        Listening
+                    </div>
+                    <div class="video-controls">
+                        <button class="video-btn material-symbols-rounded" id="toggleCamera"
+                            onclick="toggleCamera()">videocam</button>
+                        <button class="video-btn material-symbols-rounded" id="toggleMic"
+                            onclick="toggleMic()">mic</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass ai-orb-panel">
+                <div class="panel-label">AI Interviewer</div>
+                <div class="holo-container">
+                    <div class="ring ring-1"></div>
+                    <div class="ring ring-2"></div>
+                    <div class="ring ring-3"></div>
+                    <div class="ai-orb" id="aiOrb"></div>
+                </div>
+                <div class="waveform" id="waveform">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="listening-indicator" id="listeningIndicator">🎤 Listening to your answer...</div>
+            </div>
+
+            <div class="glass chat-panel">
+                <div class="panel-label">💬 Live Conversation</div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai">
+                        <div class="message-label">AI Interviewer</div>
+                        <div>Click "Start Interview" to begin</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn" onclick="startInterview()">▶️ Start Interview</button>
+            <button class="btn btn-secondary" id="stopBtn" onclick="stopInterview()" disabled>⏹️ End Interview</button>
+        </div>
+    </div>
+
+    <script>
+        // Audio Context for click sounds
+        let clickAudioCtx = null;
+
+        function playClickSound(type = 'start') {
+            if (!clickAudioCtx) clickAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = clickAudioCtx.createOscillator();
+            const gain = clickAudioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(clickAudioCtx.destination);
+
+            if (type === 'start') {
+                osc.frequency.setValueAtTime(800, clickAudioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, clickAudioCtx.currentTime + 0.1);
+            } else {
+                osc.frequency.setValueAtTime(600, clickAudioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, clickAudioCtx.currentTime + 0.15);
+            }
+
+            gain.gain.setValueAtTime(0.3, clickAudioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, clickAudioCtx.currentTime + 0.15);
+            osc.start(clickAudioCtx.currentTime);
+            osc.stop(clickAudioCtx.currentTime + 0.15);
+        }
+
+        // Theme Toggle
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.getElementById('themeToggle');
+            const isLight = body.dataset.theme === 'light';
+
+            body.dataset.theme = isLight ? '' : 'light';
+            btn.textContent = isLight ? 'dark_mode' : 'light_mode';
+            localStorage.setItem('theme', body.dataset.theme);
+        }
+
+        // Load saved theme
+        (function () {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'light') {
+                document.body.dataset.theme = 'light';
+                document.getElementById('themeToggle').textContent = 'light_mode';
+            }
+        })();
+
+        // Network Monitoring
+        let networkQuality = 'good';
+        let lastMeasuredSpeed = null;
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        // Real speed test using our backend API (runs at page load for accuracy)
+        async function realSpeedTest() {
+            const bars = document.getElementById('networkBars');
+            const text = document.getElementById('networkSpeed');
+            text.textContent = 'Testing...';
+
+            try {
+                // Download 100KB from our backend to measure actual speed
+                const testUrl = `${API_BASE}/api/speed-test/download?bytes=100000`;
+                const startTime = performance.now();
+
+                const response = await fetch(testUrl, { cache: 'no-store' });
+                const data = await response.arrayBuffer();
+
+                const endTime = performance.now();
+                const durationSec = (endTime - startTime) / 1000;
+                const fileSizeBits = data.byteLength * 8;
+                const speedMbps = (fileSizeBits / durationSec) / 1000000;
+
+                lastMeasuredSpeed = speedMbps;
+                updateNetworkDisplay(speedMbps, bars, text);
+
+                // Report speed to backend for analytics (fire and forget)
+                reportSpeedTest(speedMbps, networkQuality);
+
+            } catch (e) {
+                console.log('Backend speed test failed, using Navigator API');
+                // Fallback to Navigator API
+                checkNetwork();
+            }
+        }
+
+        // Report speed test result to backend for analytics
+        async function reportSpeedTest(speedMbps, quality) {
+            try {
+                await fetch(`${API_BASE}/api/speed-test/report?speed_mbps=${speedMbps.toFixed(2)}&quality=${quality}`, {
+                    method: 'POST'
+                });
+            } catch (e) {
+                // Silent fail - analytics is optional
+            }
+        }
+
+        // Update network display based on speed
+        function updateNetworkDisplay(speedMbps, bars, text) {
+            let speedText;
+            if (speedMbps >= 10) {
+                speedText = `${speedMbps.toFixed(0)} Mbps`;
+            } else if (speedMbps >= 1) {
+                speedText = `${speedMbps.toFixed(1)} Mbps`;
+            } else {
+                speedText = `${(speedMbps * 1000).toFixed(0)} Kbps`;
+            }
+
+            // Thresholds: <3 Mbps = Poor, 3-9 Mbps = Fair, >9 Mbps = Good
+            if (speedMbps > 9) {
+                networkQuality = 'good';
+                bars.className = 'network-bars';
+                text.textContent = `${speedText} • Good`;
+            } else if (speedMbps >= 3) {
+                networkQuality = 'fair';
+                bars.className = 'network-bars fair';
+                text.textContent = `${speedText} • Fair`;
+            } else {
+                networkQuality = 'poor';
+                bars.className = 'network-bars poor';
+                text.textContent = `${speedText} • Poor`;
+                showNetworkWarning();
+            }
+        }
+
+        // Show network warning popup
+        function showNetworkWarning() {
+            const networkIndicator = document.getElementById('networkIndicator');
+            if (!networkIndicator) return;
+
+            // Create popup if not exists
+            let popup = document.getElementById('networkWarningPopup');
+            if (!popup) {
+                popup = document.createElement('div');
+                popup.id = 'networkWarningPopup';
+                popup.style.cssText = `
+                    position: absolute;
+                    top: 100%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(220, 38, 38, 0.95);
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    font-weight: 500;
+                    white-space: nowrap;
+                    z-index: 1000;
+                    margin-top: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    animation: fadeInOut 3s ease-in-out forwards;
+                `;
+                popup.textContent = '⚠️ Weak Network Detected';
+                networkIndicator.style.position = 'relative';
+                networkIndicator.appendChild(popup);
+
+                // Remove after 3 seconds
+                setTimeout(() => popup.remove(), 3000);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // CENTRALIZED LOGGING
+        // ═══════════════════════════════════════════════════
+        class Logger {
+            static async log(level, message, context = {}) {
+                const timestamp = new Date().toISOString();
+                const entry = { level, message, timestamp, context };
+
+                // Console fallback
+                if (level === 'error') console.error(message, context);
+                else if (level === 'warn') console.warn(message, context);
+                else console.log(message, context);
+
+                // Send to Backend
+                try {
+                    await fetch(`${API_BASE}/api/log`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(entry)
+                    });
+                } catch (e) {
+                    // Silent fail to prevent loops
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // HYBRID NETWORK MONITOR (3s Heartbeat)
+        // ═══════════════════════════════════════════════════
+        class NetworkMonitor {
+            constructor() {
+                this.isRunning = false;
+                this.checkInterval = 3000; // 3 seconds
+                this.timer = null;
+            }
+
+            start() {
+                if (this.isRunning) return;
+                this.isRunning = true;
+                this.loop();
+                Logger.log('info', '📡 Network Monitor Started (Hybrid 3s)');
+            }
+
+            stop() {
+                this.isRunning = false;
+                if (this.timer) clearTimeout(this.timer);
+                Logger.log('info', '🔕 Network Monitor Stopped');
+            }
+
+            async loop() {
+                if (!this.isRunning) return;
+
+                const status = await this.checkConnectivity();
+                this.updateUI(status);
+
+                // Schedule next check
+                this.timer = setTimeout(() => this.loop(), this.checkInterval);
+            }
+
+            async checkConnectivity() {
+                // 1. Primary Check: Navigator API (Instant, No Overhead)
+                if (navigator.connection && navigator.connection.downlink) {
+                    const downlink = navigator.connection.downlink; // Mbps
+                    // If browser gives valid data, trust it
+                    if (downlink > 0) {
+                        return { online: true, source: 'navigator', speed: downlink, latency: 50 };
+                    }
+                }
+
+                // 2. Secondary Check: Backend Ping (Fallback)
+                const start = Date.now();
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+
+                    await fetch(`${API_BASE}/api/network-info`, {
+                        signal: controller.signal,
+                        cache: 'no-store'
+                    });
+                    clearTimeout(timeoutId);
+
+                    return { online: true, source: 'backend', speed: null, latency: Date.now() - start };
+
+                } catch (e) {
+                    Logger.log('warn', 'Network check failed', { error: e.message });
+                    return { online: false, source: 'none', speed: 0, latency: 0 };
+                }
+            }
+
+            updateUI(status) {
+                const bars = document.getElementById('networkBars');
+                const text = document.getElementById('networkSpeed');
+
+                if (!status.online) {
+                    networkQuality = 'poor';
+                    bars.className = 'network-bars poor';
+                    text.textContent = 'Offline';
+                    showNetworkWarning();
+                    if (isActive && !networkWarned) {
+                        networkWarned = true;
+                        sendSystemMessage('[SYSTEM: Poor Network - Connection Lost]');
+                        Logger.log('error', 'Connection Lost during interview');
+                    }
+                    return;
+                }
+
+                // Restore/Update Status
+                let speedLabel = status.speed ? `${status.speed.toFixed(1)} Mbps` : 'Connected';
+
+                // Logic: Good (>9Mbps OR <200ms), Fair (3-9Mbps OR <500ms), Poor (<3Mbps OR >500ms)
+                let isGood = (status.speed && status.speed > 9) || (status.latency < 200);
+                let isFair = (status.speed && status.speed >= 3) || (status.latency < 500);
+
+                if (isGood) {
+                    networkQuality = 'good';
+                    bars.className = 'network-bars';
+                    text.textContent = `${speedLabel} • Good`;
+                } else if (isFair) {
+                    networkQuality = 'fair';
+                    bars.className = 'network-bars fair';
+                    text.textContent = `${speedLabel} • Fair`;
+                } else {
+                    networkQuality = 'poor';
+                    bars.className = 'network-bars poor';
+                    text.textContent = `${speedLabel} • Poor`;
+                    showNetworkWarning();
+                    if (isActive && !networkWarned) {
+                        networkWarned = true;
+                        sendSystemMessage('[SYSTEM: Poor Network - Slow Connection]');
+                        Logger.log('warn', 'Poor Network Detected', status);
+                    }
+                }
+            }
+        }
+
+        const networkMonitor = new NetworkMonitor();
+
+        // Main Interview Logic
+        let ws = null, videoInterval = null, audioContext = null, playbackContext = null;
+        let mediaStream = null, videoStream = null, processor = null;
+        let isActive = false, nextPlayTime = 0, isCameraOn = true, isMicOn = true;
+        let currentAIMessage = null, currentUserMessage = null;
+        let aiTextBuffer = "", userTextBuffer = "", userIsSpeaking = false;
+        let aiIsSpeaking = false;
+        let networkWarned = false;
+
+        // Interview Timer (30 minutes = 1800 seconds)
+        const INTERVIEW_DURATION = 30 * 60; // 30 minutes
+        let interviewStartTime = null;
+        let timerInterval = null;
+
+        // Recording variables
+        let audioRecorder = null;
+        let screenRecorder = null;
+        let audioChunks = [];
+        let screenChunks = [];
+        let screenStream = null;
+        let isRecordingAudio = false;
+        let isRecordingScreen = false;
+        let sessionId = null;
+        let recordingDestination = null; // For capturing AI audio
+        let combinedRecorder = null; // Combined audio recorder (AI + User)
+        let combinedChunks = [];
+        let sharedMicStream = null; // Single shared mic stream for all recordings
+
+        const SAMPLE_RATE = 24000;
+        const WS_URL = 'ws://127.0.0.1:8000/ws/interview';
+
+        // Helper to check supported MIME types
+        function getSupportedMimeType(type) {
+            const types = [
+                `${type}/webm;codecs=vp9,opus`,
+                `${type}/webm;codecs=vp8,opus`,
+                `${type}/webm`,
+                `${type}/mp4`
+            ];
+            for (const t of types) {
+                if (MediaRecorder.isTypeSupported(t)) {
+                    console.log(`Using supported MIME type for ${type}: ${t}`);
+                    return t;
+                }
+            }
+            console.warn(`No optimal MIME type found for ${type}, using default.`);
+            return ''; // Let browser choose default
+        }
+
+        // Inline AudioWorklet Code
+        const AudioWorkletCode = `
+class PCMProcessor extends AudioWorkletProcessor {
+    process(inputs) {
+        const input = inputs[0]?.[0];
+        if (!input) return true;
+
+        const buffer = new Int16Array(input.length);
+        for (let i = 0; i < input.length; i++) {
+            const s = Math.max(-1, Math.min(1, input[i]));
+            buffer[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        this.port.postMessage(buffer.buffer, [buffer.buffer]);
+        return true;
+    }
+}
+registerProcessor('pcm-processor', PCMProcessor);
+`;
+
+        // Start Audio Recording (uses sharedMicStream)
+        async function startAudioRecording() {
+            try {
+                if (!sharedMicStream) {
+                    console.error('No shared mic stream available');
+                    return;
+                }
+
+                const track = sharedMicStream.getAudioTracks()[0];
+                console.log('Audio Stream Track:', track ? `${track.label} (${track.readyState})` : 'None');
+
+                if (!track || track.readyState === 'ended') {
+                    console.error('Audio track is ended or missing');
+                    return;
+                }
+
+                const options = {};
+                const mimeType = getSupportedMimeType('audio');
+                if (mimeType) options.mimeType = mimeType;
+
+                console.log('Initializing MediaRecorder with options:', options);
+
+                try {
+                    audioRecorder = new MediaRecorder(sharedMicStream, options);
+                } catch (e) {
+                    console.warn('Failed to create MediaRecorder with options, trying default:', e);
+                    audioRecorder = new MediaRecorder(sharedMicStream);
+                }
+
+                audioChunks = [];
+
+                audioRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                audioRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: audioRecorder.mimeType || 'audio/webm' });
+                    await saveRecording(blob, 'audio');
+                };
+
+                try {
+                    audioRecorder.start(1000); // Capture every 1 second
+                    isRecordingAudio = true;
+                    console.log('Audio recording started successfully');
+                } catch (startError) {
+                    console.error('MediaRecorder.start() failed:', startError);
+                    Logger.log('error', 'MediaRecorder.start failed, retrying without mimeType', { error: startError.message });
+
+                    // Retry without options
+                    try {
+                        audioRecorder = new MediaRecorder(sharedMicStream);
+                        audioRecorder.ondataavailable = (e) => {
+                            if (e.data.size > 0) audioChunks.push(e.data);
+                        };
+                        audioRecorder.onstop = async () => {
+                            const blob = new Blob(audioChunks, { type: audioRecorder.mimeType || 'audio/webm' });
+                            await saveRecording(blob, 'audio');
+                        };
+                        audioRecorder.start(1000);
+                        isRecordingAudio = true;
+                        console.log('Audio recording started on retry (default settings)');
+                    } catch (retryError) {
+                        Logger.log('error', 'Audio recording retry failed:', { error: retryError.message });
+                    }
+                }
+            } catch (e) {
+                Logger.log('error', 'Audio recording fatal error:', { error: e.message });
+            }
+        }
+
+        // Start Screen Recording with Audio (User + AI)
+        async function startScreenRecording() {
+            try {
+                // Get screen with system audio (AI voice)
+                // Force full screen share only (no window option)
+                screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        cursor: 'always',
+                        displaySurface: 'monitor'  // Force full screen only
+                    },
+                    audio: true,  // Capture system audio (AI voice)
+                    selfBrowserSurface: 'exclude',  // Hide browser control bar
+                    surfaceSwitching: 'exclude'  // Prevent surface switching
+                });
+
+                // Use shared mic stream (already obtained) -> No longer needed separately, as it is mixed in recordingDestination
+
+                // Create combined stream: Screen Video + Mixed Audio (AI + Mic)
+                // recordingDestination.stream already contains: AI Playback + User Mic
+
+                let combinedTracks = [...screenStream.getVideoTracks()];
+
+                if (recordingDestination && recordingDestination.stream) {
+                    combinedTracks.push(...recordingDestination.stream.getAudioTracks());
+                    console.log('Using mixed audio (AI + Mic) for screen recording');
+                } else {
+                    console.warn('Mixed audio stream not available for screen recording!');
+                    // Fallback to just mic if something went wrong
+                    if (sharedMicStream) {
+                        combinedTracks.push(...sharedMicStream.getAudioTracks());
+                    }
+                }
+
+                const combinedStream = new MediaStream(combinedTracks);
+
+                const options = {};
+                const mimeType = getSupportedMimeType('video');
+                if (mimeType) options.mimeType = mimeType;
+
+                screenRecorder = new MediaRecorder(combinedStream, options);
+                screenChunks = [];
+
+                screenRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) screenChunks.push(e.data);
+                };
+
+                screenRecorder.onstop = async () => {
+                    const blob = new Blob(screenChunks, { type: screenRecorder.mimeType || 'video/webm' });
+                    await saveRecording(blob, 'screen');
+                    // Do NOT stop mic tracks here as they are shared
+                };
+
+                screenRecorder.start(1000);
+                isRecordingScreen = true;
+                console.log('Screen recording with audio started');
+            } catch (e) {
+                Logger.log('error', 'Screen recording error:', { error: e.message });
+            }
+        }
+
+        // Stop recordings  
+        function stopRecordings() {
+            if (audioRecorder && audioRecorder.state !== 'inactive') {
+                audioRecorder.stop();
+                isRecordingAudio = false;
+            }
+            if (screenRecorder && screenRecorder.state !== 'inactive') {
+                screenRecorder.stop();
+                screenStream?.getTracks().forEach(t => t.stop());
+                isRecordingScreen = false;
+            }
+            // Stop combined audio recorder (AI + User)
+            if (combinedRecorder && combinedRecorder.state !== 'inactive') {
+                combinedRecorder.stop();
+            }
+        }
+
+        // Save recording locally and upload
+        async function saveRecording(blob, type) {
+            // Generate filename
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `interview_${type}_${timestamp}.webm`;
+
+            // Download locally - DISABLED (uploading directly to S3)
+            // const url = URL.createObjectURL(blob);
+            // const a = document.createElement('a');
+            // a.href = url;
+            // a.download = filename;
+            // document.body.appendChild(a);
+            // a.click();
+            // document.body.removeChild(a);
+            // URL.revokeObjectURL(url);
+
+            // Upload to backend
+            try {
+                const formData = new FormData();
+                formData.append('file', blob, filename);
+                formData.append('recording_type', type);
+
+                const response = await fetch(`${API_BASE}/api/upload-recording?recording_type=${type}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    sessionId = data.session_id;
+                    console.log(`${type} recording uploaded:`, data);
+                }
+            } catch (e) {
+                console.error(`Upload ${type} error:`, e);
+            }
+        }
+
+        let mediaInitialized = false;
+        async function initializeMedia() {
+            if (mediaInitialized && sharedMicStream) return; // Already initialized
+            try {
+                // Request both audio and video ONCE
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+                    audio: {
+                        echoCancellation: { ideal: true },
+                        noiseSuppression: { ideal: true },
+                        autoGainControl: { ideal: true },
+                        googEchoCancellation: { ideal: true },
+                        googAutoGainControl: { ideal: true },
+                        googNoiseSuppression: { ideal: true },
+                        googHighpassFilter: { ideal: true }
+                    }
+                });
+
+                // Store globally
+                mediaStream = stream;
+                videoStream = stream;
+                sharedMicStream = stream;
+
+                // Set video source
+                const videoElement = document.getElementById('videoFeed');
+                videoElement.srcObject = stream;
+                videoElement.muted = true; // Local playback muted to avoid feedback
+
+                Logger.log('info', 'Media initialized on load');
+                mediaInitialized = true;
+            } catch (e) {
+                Logger.log('error', 'Media initialization error:', { error: e.message });
+                alert("Please allow Camera and Microphone access to proceed with the interview.");
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', initializeMedia);
+
+        function toggleCamera() {
+            const track = videoStream?.getVideoTracks()[0];
+            if (!track) return;
+            isCameraOn = !isCameraOn;
+            // Note: Don't stop the track, just disable it, so we don't lose the permission
+            track.enabled = isCameraOn;
+            const btn = document.getElementById('toggleCamera');
+            btn.textContent = isCameraOn ? 'videocam' : 'videocam_off';
+            btn.classList.toggle('active', !isCameraOn);
+        }
+
+        function toggleMic() {
+            const track = mediaStream?.getAudioTracks()[0];
+            if (!track) return;
+            isMicOn = !isMicOn;
+            track.enabled = isMicOn;
+            const btn = document.getElementById('toggleMic');
+            btn.textContent = isMicOn ? 'mic' : 'mic_off';
+            btn.classList.toggle('active', !isMicOn);
+        }
+
+        function updateStatus(text, active = false) {
+            document.getElementById('statusText').textContent = text;
+            document.getElementById('statusBadge').classList.toggle('active', active);
+        }
+
+        function addMessage(text, isAI = true) {
+            const chat = document.getElementById('chatMessages');
+            const msg = document.createElement('div');
+            msg.className = `message ${isAI ? 'ai' : 'user'}`;
+            msg.innerHTML = `<div class="message-label">${isAI ? 'AI Interviewer' : 'You'}</div><div>${text}</div>`;
+            chat.appendChild(msg);
+            chat.scrollTop = chat.scrollHeight;
+            return msg;
+        }
+
+        function finalizeUserIfOpen() {
+            if (currentUserMessage) {
+                currentUserMessage.classList.remove('typing');
+                currentUserMessage = null;
+            }
+            userTextBuffer = "";
+            userIsSpeaking = false;
+        }
+
+        function updateLiveMessage(text, isAI = true) {
+            const chat = document.getElementById('chatMessages');
+            if (isAI) {
+                if (!currentAIMessage) {
+                    currentAIMessage = document.createElement('div');
+                    currentAIMessage.className = 'message ai typing';
+                    currentAIMessage.innerHTML = `<div class="message-label">AI Interviewer</div><div class="content">${text}</div>`;
+                    chat.appendChild(currentAIMessage);
+                } else {
+                    currentAIMessage.querySelector('.content').textContent = text;
+                }
+            } else {
+                if (!currentUserMessage) {
+                    currentUserMessage = document.createElement('div');
+                    currentUserMessage.className = 'message user typing';
+                    currentUserMessage.innerHTML = `<div class="message-label">You</div><div class="content">${text}</div>`;
+                    chat.appendChild(currentUserMessage);
+                } else {
+                    currentUserMessage.querySelector('.content').textContent = text;
+                }
+            }
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function setAvatarSpeaking(speaking) {
+            const orb = document.getElementById('aiOrb');
+            const waveform = document.getElementById('waveform');
+            if (speaking) {
+                orb.classList.add('speaking');
+                waveform.classList.add('active');
+            } else {
+                orb.classList.remove('speaking');
+            }
+        }
+
+        function setListening(listening) {
+            document.getElementById('listeningBadge').classList.toggle('active', listening);
+            document.getElementById('listeningIndicator').classList.toggle('active', listening);
+        }
+
+        function sendSystemMessage(msg) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    clientContent: {
+                        turns: [{ role: "user", parts: [{ text: msg }] }],
+                        turnComplete: true
+                    }
+                }));
+            }
+        }
+
+
+
+        function updateTimer() {
+            if (!interviewStartTime) return;
+
+            const elapsed = Math.floor((Date.now() - interviewStartTime) / 1000);
+            const remaining = Math.max(0, INTERVIEW_DURATION - elapsed);
+
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            const display = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+            document.getElementById('timerDisplay').textContent = display;
+
+            const timerEl = document.getElementById('interviewTimer');
+            timerEl.classList.remove('warning', 'critical');
+
+            if (remaining <= 60) {
+                timerEl.classList.add('critical');
+            } else if (remaining <= 300) {
+                timerEl.classList.add('warning');
+            }
+
+            // Auto-end when timer runs out
+            if (remaining <= 0 && isActive) {
+                sendSystemMessage("[SYSTEM] Interview time limit (30 minutes) reached. Ending interview.");
+                setTimeout(() => stopInterview(), 5000);
+            }
+        }
+
+
+
+        async function startInterview() {
+            if (isActive) return;
+            playClickSound('start');
+
+            isActive = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            updateStatus('Connecting...', true);
+
+            // Start interview timer
+            interviewStartTime = Date.now();
+            document.getElementById('interviewTimer').classList.add('active');
+            timerInterval = setInterval(updateTimer, 1000);
+            updateTimer();
+
+            // Start Network Monitoring
+            networkMonitor.start();
+
+            // Ensure media is ready
+            if (!sharedMicStream) {
+                console.warn("Media stream lost, re-initializing...");
+                await initializeMedia();
+            }
+
+
+
+            try {
+                // Initialize playback context and mixed audio destination FIRST
+                playbackContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SAMPLE_RATE });
+                nextPlayTime = playbackContext.currentTime;
+
+                // Create combined audio stream: AI playback + User mic
+                recordingDestination = playbackContext.createMediaStreamDestination();
+
+                // Use shared mic stream for combined recording
+                const userMicForRecording = sharedMicStream;
+                const micSource = playbackContext.createMediaStreamSource(userMicForRecording);
+                micSource.connect(recordingDestination);
+
+                // Start combined audio recorder (AI + User)
+                combinedChunks = [];
+                const options = {};
+                const mimeType = getSupportedMimeType('audio');
+                if (mimeType) options.mimeType = mimeType;
+
+                combinedRecorder = new MediaRecorder(recordingDestination.stream, options);
+                combinedRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) combinedChunks.push(e.data);
+                };
+                combinedRecorder.onstop = async () => {
+                    const blob = new Blob(combinedChunks, { type: combinedRecorder.mimeType || 'audio/webm' });
+                    await saveRecording(blob, 'combined_audio');
+                    // Do NOT stop mic tracks here as they are shared
+                };
+                combinedRecorder.start(1000);
+                console.log('Combined audio recording started (AI + User)');
+
+                // Start other recordings (Screen now has access to recordingDestination)
+                await startAudioRecording();
+
+                // Start Screen Recording with fallback
+                try {
+                    await startScreenRecording();
+                } catch (e) {
+                    Logger.log('warn', 'Screen recording skipped/failed', { error: e.message });
+                    // Continue without screen share
+                }
+
+
+                ws = new WebSocket(WS_URL);
+
+                ws.onopen = async function () {
+                    updateStatus('Interview Active', true);
+                    await startAudioStream();
+                    startVideoToGemini();
+
+                    // Send initial greeting + network status
+                    setTimeout(() => {
+                        if (ws?.readyState === WebSocket.OPEN) {
+                            const netMsg = networkQuality === 'poor' ? ' [SYSTEM: User has POOR network connection]' : '';
+                            ws.send(JSON.stringify({
+                                clientContent: {
+                                    turns: [{ role: "user", parts: [{ text: "Start the interview with a greeting" + netMsg }] }],
+                                    turnComplete: true
+                                }
+                            }));
+                        }
+                    }, 500);
+                };
+
+                ws.onmessage = function (event) {
+                    const handleMessage = (text) => {
+                        const msg = JSON.parse(text);
+
+                        if (msg.serverContent?.inputTranscription?.text) {
+
+                            const chunk = msg.serverContent.inputTranscription.text;
+                            const isFinal = msg.serverContent.inputTranscription.isFinal;
+
+                            // Hide [SYSTEM] messages from chat UI
+                            if (chunk && chunk.includes('[SYSTEM]')) {
+                                if (isFinal) {
+                                    userTextBuffer = "";
+                                    currentUserMessage = null;
+                                    userIsSpeaking = false;
+                                }
+                                return;
+                            }
+
+                            if (!userIsSpeaking) {
+                                userIsSpeaking = true;
+                                userTextBuffer = "";
+                                currentUserMessage = null;
+                            }
+
+                            if (!userTextBuffer) {
+                                userTextBuffer = chunk;
+                            } else if (!chunk.startsWith(userTextBuffer)) {
+                                userTextBuffer = (userTextBuffer + " " + chunk).trim();
+                            } else {
+                                userTextBuffer = chunk;
+                            }
+
+                            updateLiveMessage(userTextBuffer, false);
+
+                            if (isFinal) {
+                                if (userTextBuffer.trim().length >= 2) {
+                                    addMessage(userTextBuffer.trim(), false);
+                                }
+                                userTextBuffer = "";
+                                currentUserMessage = null;
+                                userIsSpeaking = false;
+                            }
+                        }
+
+                        if (msg.serverContent?.outputTranscription?.text) {
+                            aiTextBuffer += msg.serverContent.outputTranscription.text;
+                        }
+
+                        if (msg.serverContent?.modelTurn?.parts?.some(p => p.inlineData?.data)) {
+                            finalizeUserIfOpen();
+                            aiIsSpeaking = true; // AI started speaking
+                            setAvatarSpeaking(true);
+                            setListening(false);
+                            msg.serverContent.modelTurn.parts.forEach(p => {
+                                if (p.inlineData?.data) playAudio(p.inlineData.data);
+                            });
+                        }
+
+                        if (msg.serverContent?.generationComplete) {
+                            if (aiTextBuffer.trim()) {
+                                addMessage(aiTextBuffer.trim(), true);
+                                aiTextBuffer = "";
+                            }
+                            aiIsSpeaking = false;
+                        }
+                    };
+
+                    if (event.data instanceof Blob) {
+                        event.data.text().then(handleMessage);
+                    } else {
+                        handleMessage(event.data);
+                    }
+                };
+
+                ws.onerror = (e) => {
+                    Logger.log('error', 'WebSocket Error', { type: e.type, time: Date.now() });
+                    updateStatus('Connection Error', false);
+                };
+                ws.onclose = (e) => {
+                    const reason = `WebSocket Closed: Code=${e.code}, Reason=${e.reason}, Clean=${e.wasClean}`;
+                    console.warn(reason);
+                    Logger.log('error', 'WebSocket Closed', { code: e.code, reason: e.reason, wasClean: e.wasClean });
+
+                    updateStatus('Interview Ended', false);
+                    isActive = false;
+                    stopAudioStream();
+                };
+
+            } catch (e) {
+                Logger.log('error', 'startInterview Error:', { error: e.message, stack: e.stack });
+                updateStatus('Error', false);
+                isActive = false;
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+
+        function startVideoToGemini() {
+            const video = document.getElementById("videoFeed");
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+
+            videoInterval = setInterval(() => {
+                if (!ws || ws.readyState !== WebSocket.OPEN || !isCameraOn || !video.videoWidth) return;
+                canvas.width = 480;
+                canvas.height = 270;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const base64 = canvas.toDataURL("image/jpeg", 0.6).split(",")[1];
+                ws.send(JSON.stringify({ realtimeInput: { mediaChunks: [{ mimeType: "image/jpeg", data: base64 }] } }));
+            }, 1000);
+        }
+
+
+        async function startAudioStream() {
+            audioContext = new AudioContext({ sampleRate: SAMPLE_RATE });
+            const source = audioContext.createMediaStreamSource(sharedMicStream);
+
+            // Highpass filter (unchanged)
+            const highpass = audioContext.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 80;
+            highpass.Q.value = 0.5;
+            source.connect(highpass);
+
+            // ✅ AudioWorkletNode replaces ScriptProcessorNode
+            // Create Blob URL for Inline Worker
+            const blob = new Blob([AudioWorkletCode], { type: 'application/javascript' });
+            const workletUrl = URL.createObjectURL(blob);
+
+            try {
+                await audioContext.audioWorklet.addModule(workletUrl);
+                processor = new AudioWorkletNode(audioContext, 'pcm-processor');
+
+                processor.port.onmessage = (e) => {
+                    if (!ws || ws.readyState !== WebSocket.OPEN || !isMicOn) return;
+                    const bytes = new Uint8Array(e.data);
+                    let binary = '';
+                    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+                    ws.send(JSON.stringify({
+                        realtimeInput: {
+                            mediaChunks: [{ mimeType: `audio/pcm;rate=${SAMPLE_RATE}`, data: btoa(binary) }]
+                        }
+                    }));
+                };
+            } catch (e) {
+                console.error("AudioWorklet failed to load", e);
+                // Clean up URL object
+                URL.revokeObjectURL(workletUrl);
+                return;
+            }
+            // Clean up URL object we don't need it anymore
+            URL.revokeObjectURL(workletUrl);
+
+            highpass.connect(processor);
+            processor.connect(audioContext.destination);
+            setListening(true);
+        }
+        // Track audio playback end time
+        let audioEndTime = 0;
+        let audioCheckInterval = null;
+
+        function playAudio(base64) {
+            const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+            const pcm = new Int16Array(bytes.buffer);
+            const float32 = Float32Array.from(pcm, v => v / 32768);
+            const buf = playbackContext.createBuffer(1, float32.length, SAMPLE_RATE);
+            buf.getChannelData(0).set(float32);
+            if (nextPlayTime < playbackContext.currentTime) nextPlayTime = playbackContext.currentTime;
+            const src = playbackContext.createBufferSource();
+            src.buffer = buf;
+            src.connect(playbackContext.destination); // Play to speakers
+
+            // Also connect to recording destination for combined audio capture
+            if (recordingDestination) {
+                src.connect(recordingDestination);
+            }
+
+            src.start(nextPlayTime);
+
+            // Track when this audio will finish
+            audioEndTime = nextPlayTime + buf.duration;
+            nextPlayTime += buf.duration;
+
+            // Start checking for audio completion
+            if (!audioCheckInterval) {
+                audioCheckInterval = setInterval(() => {
+                    if (playbackContext && playbackContext.currentTime >= audioEndTime) {
+                        // Audio finished, stop orb animation
+                        clearInterval(audioCheckInterval);
+                        audioCheckInterval = null;
+                        if (!aiIsSpeaking) {
+                            setAvatarSpeaking(false);
+                            setListening(true);
+                        }
+                    }
+                }, 100);
+            }
+        }
+
+        function stopAudioStream() {
+            mediaStream?.getTracks().forEach(t => t.stop());
+            processor?.disconnect();
+            audioContext?.close();
+            playbackContext?.close();
+            setListening(false);
+            document.getElementById('aiOrb').classList.remove('speaking');
+            document.getElementById('waveform').classList.remove('active');
+        }
+
+        function stopInterview() {
+            playClickSound('end');
+            if (videoInterval) clearInterval(videoInterval);
+            if (timerInterval) clearInterval(timerInterval);
+            ws?.close();
+            stopAudioStream();
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            isActive = false;
+
+            // Hide and reset timer
+            const timerEl = document.getElementById('interviewTimer');
+            timerEl.classList.remove('active', 'warning', 'critical');
+            document.getElementById('timerDisplay').textContent = '30:00';
+            interviewStartTime = null;
+
+            // Stop and save recordings
+            stopRecordings();
+
+            // Stop shared mic stream at the very end
+            if (sharedMicStream) {
+                sharedMicStream.getTracks().forEach(t => t.stop());
+                sharedMicStream = null;
+                console.log('Shared microphone stream stopped');
+            }
+
+            updateStatus('Interview Ended', false);
+        }
+    </script>
+</body>
+
+</html>
