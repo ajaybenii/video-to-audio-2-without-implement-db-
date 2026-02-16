@@ -1434,12 +1434,12 @@
         }
 
         // ═══════════════════════════════════════════════════
-        // HYBRID NETWORK MONITOR (15s Live Speed Update)
+        // HYBRID NETWORK MONITOR (10s Live Speed Update)
         // ═══════════════════════════════════════════════════
         class NetworkMonitor {
             constructor() {
                 this.isRunning = false;
-                this.checkInterval = 15000; // 15 seconds
+                this.checkInterval = 10000; // 10 seconds
                 this.timer = null;
             }
 
@@ -1447,7 +1447,7 @@
                 if (this.isRunning) return;
                 this.isRunning = true;
                 this.loop();
-                Logger.log('info', '📡 Network Monitor Started (Live 15s)');
+                Logger.log('info', '📡 Network Monitor Started (Live 10s)');
             }
 
             stop() {
@@ -2320,6 +2320,19 @@ registerProcessor('pcm-processor', PCMProcessor);
 
             updateStatus('Interview Ended', false);
         }
+
+        // Initialize on Page Load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 App Initialized');
+            // Start monitoring network immediately
+            if (typeof networkMonitor !== 'undefined') {
+                networkMonitor.start();
+            }
+            // Run initial high-precision speed test
+            if (typeof realSpeedTest === 'function') {
+                realSpeedTest();
+            }
+        });
     </script>
 </body>
 
