@@ -1047,12 +1047,413 @@
             font-size: 22px;
             font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
         }
+
+        /* ============================================
+           SERVER LOADER OVERLAY
+           ============================================ */
+        .server-loader-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            padding: 40px;
+        }
+
+        .server-loader-overlay.active {
+            display: flex;
+        }
+
+        [data-theme="light"] .server-loader-overlay {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .loader-spinner {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--cyan);
+            border-right-color: var(--purple);
+            animation: loaderSpin 1.2s linear infinite;
+            position: relative;
+        }
+
+        .loader-spinner::before {
+            content: '';
+            position: absolute;
+            inset: 6px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-bottom-color: var(--blue);
+            border-left-color: var(--green);
+            animation: loaderSpin 0.8s linear infinite reverse;
+        }
+
+        @keyframes loaderSpin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loader-content {
+            text-align: center;
+            max-width: 480px;
+        }
+
+        .loader-content h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .loader-content p {
+            font-size: 15px;
+            color: var(--text-dim);
+            line-height: 1.7;
+            margin-bottom: 8px;
+        }
+
+        .loader-content .loader-warning {
+            font-size: 13px;
+            color: var(--yellow);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 16px;
+        }
+
+        .loader-progress-bar {
+            width: 280px;
+            height: 4px;
+            background: var(--surface);
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .loader-progress-bar .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--blue));
+            border-radius: 4px;
+            animation: progressPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes progressPulse {
+            0% {
+                width: 5%;
+                opacity: 0.7;
+            }
+
+            50% {
+                width: 70%;
+                opacity: 1;
+            }
+
+            100% {
+                width: 5%;
+                opacity: 0.7;
+            }
+        }
+
+        .loader-status {
+            font-size: 12px;
+            color: var(--text-dim);
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+        }
+
+        /* ============================================
+           INTERVIEW COMPLETION PAGE
+           ============================================ */
+        .interview-complete-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            /* Always day mode */
+            background: linear-gradient(135deg, #e8f4fc 0%, #f0f7ff 25%, #ffffff 50%, #f5f9ff 75%, #e3f0fc 100%);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 28px;
+            padding: 40px;
+        }
+
+        .interview-complete-overlay.active {
+            display: flex;
+            animation: shimmerBg 6s ease-in-out infinite, fadeInComplete 0.6s ease-out;
+            background-size: 200% 200%;
+        }
+
+        @keyframes fadeInComplete {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .checkmark-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(14, 165, 233, 0.1));
+            border: 2px solid #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: checkPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s both;
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
+        }
+
+        @keyframes checkPop {
+            from {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .checkmark-circle svg {
+            width: 48px;
+            height: 48px;
+            stroke: #10b981;
+            stroke-width: 3;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-dasharray: 50;
+            stroke-dashoffset: 50;
+            animation: drawCheck 0.5s ease-out 0.6s forwards;
+        }
+
+        @keyframes drawCheck {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .complete-content {
+            text-align: center;
+            max-width: 520px;
+            animation: fadeInComplete 0.5s ease-out 0.4s both;
+        }
+
+        .complete-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #10b981, #0ea5e9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .complete-content p {
+            font-size: 16px;
+            color: rgba(30, 58, 95, 0.6);
+            line-height: 1.8;
+            margin-bottom: 8px;
+        }
+
+        .complete-content .complete-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        .complete-content .complete-card p {
+            margin: 0;
+            font-size: 15px;
+            color: rgba(30, 58, 95, 0.7);
+        }
+
+        .complete-footer {
+            font-size: 12px;
+            color: rgba(30, 58, 95, 0.4);
+            margin-top: 12px;
+            animation: fadeInComplete 0.5s ease-out 1s both;
+        }
+
+        /* ============================================
+           COMPLETION PAGE - ANIMATED BACKGROUND
+           ============================================ */
+        .complete-bg-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .interview-complete-overlay>*:not(.complete-bg-canvas):not(.complete-shapes) {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Floating shapes container */
+        .complete-shapes {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .complete-shapes .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            animation: floatShape 8s ease-in-out infinite;
+        }
+
+        .complete-shapes .shape:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.2), transparent 70%);
+            top: 10%;
+            left: -5%;
+            animation-delay: 0s;
+        }
+
+        .complete-shapes .shape:nth-child(2) {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.18), transparent 70%);
+            top: 60%;
+            right: -10%;
+            animation-delay: 2s;
+        }
+
+        .complete-shapes .shape:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15), transparent 70%);
+            top: 20%;
+            right: 15%;
+            animation-delay: 4s;
+        }
+
+        .complete-shapes .shape:nth-child(4) {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%);
+            bottom: 5%;
+            left: 10%;
+            animation-delay: 1s;
+        }
+
+        .complete-shapes .shape:nth-child(5) {
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.12), transparent 70%);
+            top: 50%;
+            left: 30%;
+            animation-delay: 3s;
+        }
+
+        @keyframes floatShape {
+            0% {
+                opacity: 0;
+                transform: translateY(30px) scale(0.8);
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(-30px) scale(1.1);
+            }
+        }
+
+        /* shimmerBg animation for completion page background */
+        @keyframes shimmerBg {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+        }
     </style>
 </head>
 
 <body>
     <div class="grid-bg"></div>
     <canvas id="bgCanvas"></canvas>
+
+    <!-- Server Startup Loader Overlay -->
+    <div class="server-loader-overlay" id="serverLoader">
+        <div class="loader-spinner"></div>
+        <div class="loader-content">
+            <h2>Starting Interview Server</h2>
+            <p>Please wait while we prepare your interview environment. This may take 2–3 minutes if the server is
+                waking up.</p>
+            <div class="loader-warning">⚠️ Please do not close or exit this page</div>
+        </div>
+        <div class="loader-progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+        <div class="loader-status" id="loaderStatus">Connecting to server...</div>
+    </div>
+
+    <!-- Interview Complete Overlay -->
+    <div class="interview-complete-overlay" id="interviewComplete">
+        <canvas class="complete-bg-canvas" id="completeBgCanvas"></canvas>
+        <div class="complete-shapes">
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+            <div class="shape"></div>
+        </div>
+        <div class="checkmark-circle">
+            <svg viewBox="0 0 24 24">
+                <polyline points="4 12 10 18 20 6"></polyline>
+            </svg>
+        </div>
+        <div class="complete-content">
+            <h2>Interview Complete</h2>
+            <p>Thank you for your time and effort. Your responses have been recorded successfully.</p>
+            <div class="complete-card">
+                <p>📋 Our HR team will review your interview and coordinate with you regarding the next steps. You'll
+                    hear from us soon!</p>
+            </div>
+        </div>
+        <div class="complete-footer">You may now safely close this tab.</div>
+    </div>
 
     <div class="container">
         <div class="header">
@@ -1594,6 +1995,59 @@
         const INPUT_SAMPLE_RATE = 16000;
         const OUTPUT_SAMPLE_RATE = 24000;
         const WS_URL = 'wss://video-to-audio-2-without-implement-db.onrender.com/ws/interview';
+        const HEALTH_URL = 'https://video-to-audio-2-without-implement-db.onrender.com/health';
+
+        // --- Backend Health Check & Loader ---
+        function showServerLoader(show) {
+            document.getElementById('serverLoader').classList.toggle('active', show);
+        }
+        function updateLoaderStatus(text) {
+            document.getElementById('loaderStatus').textContent = text;
+        }
+
+        async function checkBackendHealth() {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            try {
+                const res = await fetch(HEALTH_URL, { signal: controller.signal });
+                clearTimeout(timeout);
+                return res.ok;
+            } catch {
+                clearTimeout(timeout);
+                return false;
+            }
+        }
+
+        async function waitForBackend() {
+            const maxAttempts = 40; // ~40 × 5s = 200s ≈ 3.3 min
+            let attempt = 0;
+
+            // Quick check first
+            updateLoaderStatus('Checking server status...');
+            const isReady = await checkBackendHealth();
+            if (isReady) return true;
+
+            // Server is cold — show loader and retry
+            showServerLoader(true);
+            while (attempt < maxAttempts) {
+                attempt++;
+                updateLoaderStatus(`Waiting for server... attempt ${attempt}/${maxAttempts}`);
+                await new Promise(r => setTimeout(r, 5000));
+                const ok = await checkBackendHealth();
+                if (ok) {
+                    updateLoaderStatus('Server is ready! Starting interview...');
+                    await new Promise(r => setTimeout(r, 800));
+                    showServerLoader(false);
+                    return true;
+                }
+            }
+
+            // Timed out
+            updateLoaderStatus('Server did not respond. Please try again later.');
+            await new Promise(r => setTimeout(r, 3000));
+            showServerLoader(false);
+            return false;
+        }
 
         // Helper to check supported MIME types
         function getSupportedMimeType(type) {
@@ -1988,8 +2442,18 @@ registerProcessor('pcm-processor', PCMProcessor);
             if (isActive) return;
             playClickSound('start');
 
-            isActive = true;
             document.getElementById('startBtn').disabled = true;
+            updateStatus('Checking server...', false);
+
+            // Wait for backend to be ready (handles cold starts)
+            const serverReady = await waitForBackend();
+            if (!serverReady) {
+                updateStatus('Server unavailable', false);
+                document.getElementById('startBtn').disabled = false;
+                return;
+            }
+
+            isActive = true;
             document.getElementById('stopBtn').disabled = false;
             updateStatus('Connecting...', true);
 
@@ -2319,6 +2783,72 @@ registerProcessor('pcm-processor', PCMProcessor);
             }
 
             updateStatus('Interview Ended', false);
+
+            // Show the interview completion page
+            document.getElementById('interviewComplete').classList.add('active');
+            startCompletionCelebration();
+        }
+
+        // --- Confetti / Particle Celebration on Completion ---
+        function startCompletionCelebration() {
+            const canvas = document.getElementById('completeBgCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const colors = ['#30d158', '#00ffd5', '#0a84ff', '#bf5af2', '#ffd60a', '#ff453a', '#ff9f0a'];
+            const particles = [];
+
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: -20 - Math.random() * canvas.height * 0.4,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: Math.random() * 2 + 1.5,
+                    size: Math.random() * 8 + 3,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    opacity: Math.random() * 0.7 + 0.3,
+                    rotation: Math.random() * 360,
+                    rotSpeed: (Math.random() - 0.5) * 6,
+                    shape: Math.random() > 0.5 ? 'rect' : 'circle',
+                    wobble: Math.random() * 10,
+                    wobbleSpeed: Math.random() * 0.05 + 0.02
+                });
+            }
+
+            let frame = 0;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+                particles.forEach(p => {
+                    if (p.y > canvas.height + 50) return;
+                    alive = true;
+                    p.x += p.vx + Math.sin(frame * p.wobbleSpeed) * p.wobble * 0.05;
+                    p.y += p.vy;
+                    p.vy += 0.03; // gravity
+                    p.rotation += p.rotSpeed;
+                    p.opacity *= 0.998;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rotation * Math.PI) / 180);
+                    ctx.globalAlpha = p.opacity;
+                    ctx.fillStyle = p.color;
+
+                    if (p.shape === 'rect') {
+                        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                });
+                frame++;
+                if (alive) requestAnimationFrame(animate);
+            }
+            animate();
         }
 
         // Initialize on Page Load
