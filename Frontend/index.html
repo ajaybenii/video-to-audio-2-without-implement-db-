@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Voice Interviewer - Holographic</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
     <style>
@@ -1427,6 +1429,124 @@
                 background-position: 100% 50%;
             }
         }
+
+        /* ============================================
+           FULLSCREEN WARNING OVERLAY
+           ============================================ */
+        .fullscreen-warning-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .fullscreen-warning-overlay.active {
+            display: flex;
+            animation: fadeInComplete 0.3s ease-out;
+        }
+
+        .fullscreen-warning-card {
+            background: rgba(255, 59, 48, 0.08);
+            border: 1px solid rgba(255, 59, 48, 0.3);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+            animation: warningShake 0.5s ease-out;
+        }
+
+        @keyframes warningShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            15% {
+                transform: translateX(-8px);
+            }
+
+            30% {
+                transform: translateX(8px);
+            }
+
+            45% {
+                transform: translateX(-6px);
+            }
+
+            60% {
+                transform: translateX(6px);
+            }
+
+            75% {
+                transform: translateX(-3px);
+            }
+
+            90% {
+                transform: translateX(3px);
+            }
+        }
+
+        .fullscreen-warning-icon {
+            font-size: 56px;
+            margin-bottom: 20px;
+            animation: warningPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes warningPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .fullscreen-warning-card h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ff453a;
+            margin-bottom: 16px;
+        }
+
+        .fullscreen-warning-card p {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .fullscreen-warning-card .warning-highlight {
+            color: #ff9f0a;
+            font-weight: 600;
+        }
+
+        .fullscreen-return-btn {
+            background: linear-gradient(135deg, #ff453a, #ff6b6b);
+            color: white;
+            border: none;
+            padding: 14px 36px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .fullscreen-return-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 69, 58, 0.4);
+        }
     </style>
 </head>
 
@@ -1447,6 +1567,17 @@
             <div class="progress-fill"></div>
         </div>
         <div class="loader-status" id="loaderStatus">Connecting to server...</div>
+    </div>
+
+    <!-- Fullscreen Warning Overlay -->
+    <div class="fullscreen-warning-overlay" id="fullscreenWarning">
+        <div class="fullscreen-warning-card">
+            <div class="fullscreen-warning-icon">⚠️</div>
+            <h2>Fullscreen Mode Required</h2>
+            <p>You are <span class="warning-highlight">not allowed to exit full screen mode</span> during the interview.
+                Leaving fullscreen may result in <span class="warning-highlight">disqualification</span>.</p>
+            <button class="fullscreen-return-btn" onclick="returnToFullscreen()">🔒 Return to Fullscreen</button>
+        </div>
     </div>
 
     <!-- Interview Complete Overlay -->
@@ -2477,6 +2608,13 @@ registerProcessor('pcm-processor', PCMProcessor);
             document.getElementById('stopBtn').disabled = false;
             updateStatus('Connecting...', true);
 
+            // Enter fullscreen mode
+            try {
+                await document.documentElement.requestFullscreen();
+            } catch (e) {
+                console.warn('Fullscreen request failed:', e);
+            }
+
             // Start interview timer
             interviewStartTime = Date.now();
             document.getElementById('interviewTimer').classList.add('active');
@@ -2786,6 +2924,14 @@ registerProcessor('pcm-processor', PCMProcessor);
             document.getElementById('stopBtn').disabled = true;
             isActive = false;
 
+            // Hide fullscreen warning if visible
+            document.getElementById('fullscreenWarning').classList.remove('active');
+
+            // Exit fullscreen mode
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => { });
+            }
+
             // Hide and reset timer
             const timerEl = document.getElementById('interviewTimer');
             timerEl.classList.remove('active', 'warning', 'critical');
@@ -2808,6 +2954,19 @@ registerProcessor('pcm-processor', PCMProcessor);
             document.getElementById('interviewComplete').classList.add('active');
             startCompletionCelebration();
         }
+
+        // --- Fullscreen Enforcement ---
+        function returnToFullscreen() {
+            document.getElementById('fullscreenWarning').classList.remove('active');
+            document.documentElement.requestFullscreen().catch(() => { });
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && isActive) {
+                // User exited fullscreen during active interview — show warning
+                document.getElementById('fullscreenWarning').classList.add('active');
+            }
+        });
 
         // --- Confetti / Particle Celebration on Completion ---
         function startCompletionCelebration() {
