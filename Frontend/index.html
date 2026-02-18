@@ -1547,6 +1547,136 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(255, 69, 58, 0.4);
         }
+
+        /* ============================================
+           FULLSCREEN WELCOME PROMPT (on page load)
+           ============================================ */
+        .fullscreen-prompt-overlay {
+            display: flex;
+            position: fixed;
+            inset: 0;
+            z-index: 99998;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .fullscreen-prompt-overlay.hidden {
+            display: none;
+        }
+
+        .fullscreen-prompt-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 44px;
+            max-width: 480px;
+            text-align: center;
+            animation: fadeInComplete 0.4s ease-out;
+        }
+
+        .fullscreen-prompt-icon {
+            font-size: 52px;
+            margin-bottom: 20px;
+        }
+
+        .fullscreen-prompt-card h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
+        .fullscreen-prompt-card p {
+            font-size: 14px;
+            color: var(--text-dim);
+            line-height: 1.7;
+            margin-bottom: 28px;
+        }
+
+        .fullscreen-prompt-btn {
+            background: linear-gradient(135deg, var(--cyan), var(--blue));
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .fullscreen-prompt-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(0, 255, 213, 0.3);
+        }
+
+        /* ============================================
+           SCREEN SHARE MANDATORY WARNING
+           ============================================ */
+        .screenshare-warning-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 99997;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .screenshare-warning-overlay.active {
+            display: flex;
+            animation: fadeInComplete 0.3s ease-out;
+        }
+
+        .screenshare-warning-card {
+            background: rgba(255, 149, 0, 0.08);
+            border: 1px solid rgba(255, 149, 0, 0.3);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 480px;
+            text-align: center;
+            animation: warningShake 0.5s ease-out;
+        }
+
+        .screenshare-warning-card h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ff9f0a;
+            margin-bottom: 14px;
+        }
+
+        .screenshare-warning-card p {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .screenshare-ok-btn {
+            background: linear-gradient(135deg, #ff9f0a, #ffb340);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .screenshare-ok-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 159, 10, 0.4);
+        }
     </style>
 </head>
 
@@ -1580,6 +1710,28 @@
         </div>
     </div>
 
+    <!-- Fullscreen Welcome Prompt (on page load) -->
+    <div class="fullscreen-prompt-overlay" id="fullscreenPrompt">
+        <div class="fullscreen-prompt-card">
+            <div class="fullscreen-prompt-icon">💻</div>
+            <h2>Enter Fullscreen Mode</h2>
+            <p>For the best interview experience and to maintain exam integrity, this session requires
+                <strong>fullscreen mode</strong>. Please click below to proceed.</p>
+            <button class="fullscreen-prompt-btn" onclick="enterFullscreenFromPrompt()">🚀 Enter Fullscreen</button>
+        </div>
+    </div>
+
+    <!-- Screen Share Mandatory Warning -->
+    <div class="screenshare-warning-overlay" id="screenshareWarning">
+        <div class="screenshare-warning-card">
+            <div class="fullscreen-warning-icon">📹</div>
+            <h2>Screen Sharing Required</h2>
+            <p>Screen sharing is <span class="warning-highlight">mandatory</span> to start the interview. Please click
+                "Start Interview" again and share your entire screen when prompted.</p>
+            <button class="screenshare-ok-btn" onclick="dismissScreenShareWarning()">Got it</button>
+        </div>
+    </div>
+
     <!-- Interview Complete Overlay -->
     <div class="interview-complete-overlay" id="interviewComplete">
         <canvas class="complete-bg-canvas" id="completeBgCanvas"></canvas>
@@ -1609,7 +1761,7 @@
     <div class="container">
         <div class="header">
             <div class="header-left">
-                <h1>🎙️ AI Voice Interview</h1>
+                <h1>🎙️ Interview</h1>
             </div>
             <div class="header-right">
                 <div class="network-indicator" id="networkIndicator">
@@ -2608,13 +2760,6 @@ registerProcessor('pcm-processor', PCMProcessor);
             document.getElementById('stopBtn').disabled = false;
             updateStatus('Connecting...', true);
 
-            // Enter fullscreen mode
-            try {
-                await document.documentElement.requestFullscreen();
-            } catch (e) {
-                console.warn('Fullscreen request failed:', e);
-            }
-
             // Start interview timer
             interviewStartTime = Date.now();
             document.getElementById('interviewTimer').classList.add('active');
@@ -2666,12 +2811,30 @@ registerProcessor('pcm-processor', PCMProcessor);
                 // Start other recordings (Screen now has access to recordingDestination)
                 await startAudioRecording();
 
-                // Start Screen Recording with fallback
+                // Start Screen Recording — MANDATORY
                 try {
                     await startScreenRecording();
+                    if (!screenStream) throw new Error('Screen share was not granted');
                 } catch (e) {
-                    Logger.log('warn', 'Screen recording skipped/failed', { error: e.message });
-                    // Continue without screen share
+                    Logger.log('warn', 'Screen share denied or failed', { error: e.message });
+                    // Abort the interview — screen share is mandatory
+                    isActive = false;
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('stopBtn').disabled = true;
+                    if (timerInterval) clearInterval(timerInterval);
+                    document.getElementById('interviewTimer').classList.remove('active');
+                    networkMonitor.stop();
+                    updateStatus('Ready to Start', false);
+                    // Stop any recordings that started
+                    if (combinedRecorder && combinedRecorder.state !== 'inactive') {
+                        combinedRecorder.stop();
+                    }
+                    if (audioRecorder && audioRecorder.state !== 'inactive') {
+                        audioRecorder.stop();
+                    }
+                    // Show screen share mandatory warning
+                    document.getElementById('screenshareWarning').classList.add('active');
+                    return;
                 }
 
 
@@ -2956,9 +3119,18 @@ registerProcessor('pcm-processor', PCMProcessor);
         }
 
         // --- Fullscreen Enforcement ---
+        function enterFullscreenFromPrompt() {
+            document.getElementById('fullscreenPrompt').classList.add('hidden');
+            document.documentElement.requestFullscreen().catch(() => { });
+        }
+
         function returnToFullscreen() {
             document.getElementById('fullscreenWarning').classList.remove('active');
             document.documentElement.requestFullscreen().catch(() => { });
+        }
+
+        function dismissScreenShareWarning() {
+            document.getElementById('screenshareWarning').classList.remove('active');
         }
 
         document.addEventListener('fullscreenchange', () => {
